@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
- url      = env("POSTGRES_URL_NON_POOLING")
+  url      = env("POSTGRES_URL_NON_POOLING")
 }
 
 model User {
@@ -268,7 +268,6 @@ enum UserRole {
 
 enum CardType {
   QR
-  RFID
 }
 
 enum GateStatus {
