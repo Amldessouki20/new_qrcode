@@ -6,26 +6,47 @@ declare global {
   var prisma: PrismaClient | undefined;
 }
 
-export const prisma: PrismaClient =
-  global.prisma ||
-  new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-    datasources: {
-      db: {
-        url: process.env.POSTGRES_URL_NON_POOLING,
+// Create a function to initialize Prisma with proper error handling
+function createPrismaClient() {
+  try {
+    return new PrismaClient({
+      log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+      datasources: {
+        db: {
+          url: process.env.POSTGRES_URL_NON_POOLING || process.env.DATABASE_URL,
+        },
       },
-    },
-    // Optimizations for serverless environments
-    transactionOptions: {
-      timeout: 10000, // 10 seconds
-    },
-  });
+      // Optimizations for serverless environments
+      transactionOptions: {
+        timeout: 10000, // 10 seconds
+      },
+      // Add connection pool settings for better serverless performance
+      __internal: {
+        engine: {
+          connectTimeout: 60000,
+          pool: {
+            timeout: 60000,
+          },
+        },
+      },
+    });
+  } catch (error) {
+    console.error('Failed to initialize Prisma Client:', error);
+    throw error;
+  }
+}
+
+export const prisma: PrismaClient = global.prisma || createPrismaClient();
 
 if (process.env.NODE_ENV === 'development') global.prisma = prisma;
 
 // Graceful shutdown for serverless
 if (process.env.NODE_ENV === 'production') {
   process.on('beforeExit', async () => {
-    await prisma.$disconnect();
+    try {
+      await prisma.$disconnect();
+    } catch (error) {
+      console.error('Error disconnecting Prisma:', error);
+    }
   });
 }
