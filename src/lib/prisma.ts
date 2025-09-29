@@ -20,15 +20,6 @@ function createPrismaClient() {
       transactionOptions: {
         timeout: 10000, // 10 seconds
       },
-      // Add connection pool settings for better serverless performance
-      __internal: {
-        engine: {
-          connectTimeout: 60000,
-          pool: {
-            timeout: 60000,
-          },
-        },
-      },
     });
   } catch (error) {
     console.error('Failed to initialize Prisma Client:', error);
