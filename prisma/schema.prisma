@@ -1,0 +1,299 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String           @id @default(cuid())
+  username        String           @unique
+  password        String
+  role            UserRole         @default(USER)
+  isActive        Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  deletedAt       DateTime?
+  gateControlLogs GateControlLog[] @relation("GateControlBy")
+  auditLogs       AuditLog[]
+  createdCards    Card[]           @relation("CreatedBy")
+  createdGates    Gate[]           @relation("GateCreatedBy")
+  createdGuests   Guest[]          @relation("CreatedBy")
+  updatedGuests   Guest[]          @relation("UpdatedBy")
+  userPermissions UserPermission[]
+
+  @@map("users")
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String
+  action     String
+  targetType String
+  targetId   String?
+  details    String?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
+
+model Permission {
+  id              String           @id @default(cuid())
+  name            String           @unique
+  description     String?
+  module          String
+  action          String
+  userPermissions UserPermission[]
+
+  @@map("permissions")
+}
+
+model UserPermission {
+  id           String     @id @default(cuid())
+  userId       String
+  permissionId String
+  createdAt    DateTime   @default(now())
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, permissionId])
+  @@map("user_permissions")
+}
+
+model Gate {
+  id                String           @id @default(cuid())
+  name              String
+  nameAr            String
+  typeId            String?
+  gateType          String?
+  location          String
+  defaultProtocolId String?
+  protocolName      String?
+  ipAddress         String?
+  port              Int?
+  serialPort        String?
+  baudRate          Int?             @default(9600)
+  model             String?          @default("")
+  maxCapacity       Int?             @default(30)
+  isActive          Boolean          @default(true)
+  status            GateStatus       @default(CLOSED)
+  lastControlAt     DateTime?
+  description       String?
+  createdById       String
+  canceledAt        DateTime?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  gateControlLogs   GateControlLog[]
+  accessLogs        AccessLog[]
+  createdBy         User             @relation("GateCreatedBy", fields: [createdById], references: [id])
+  defaultProtocol   GateProtocol?    @relation(fields: [defaultProtocolId], references: [id])
+  type              GateType?        @relation(fields: [typeId], references: [id])
+  restaurants       Restaurant[]
+
+  @@index([typeId])
+  @@index([defaultProtocolId])
+  @@index([isActive])
+  @@index([status])
+  @@index([ipAddress, port])
+  @@map("gates")
+}
+
+model GateType {
+  id    String @id @default(cuid())
+  name  String @unique
+  gates Gate[]
+}
+
+model GateProtocol {
+  id    String @id @default(cuid())
+  name  String @unique
+  gates Gate[]
+}
+
+model GateControlLog {
+  id           String   @id @default(cuid())
+  gateId       String
+  userId       String?
+  action       String
+  isSuccess    Boolean
+  errorCode    String?
+  errorMessage String?
+  duration     Int?
+  occurredAt   DateTime @default(now())
+  gate         Gate     @relation(fields: [gateId], references: [id], onDelete: Cascade)
+  user         User?    @relation("GateControlBy", fields: [userId], references: [id])
+
+  @@index([occurredAt])
+  @@index([gateId, occurredAt])
+}
+
+model Restaurant {
+  id             String     @id @default(cuid())
+  name           String
+  nameAr         String?
+  description    String?
+  location       String?
+  capacity       Int        @default(50)
+  restaurantType String
+  gateId         String?
+  isActive       Boolean    @default(true)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  deletedAt      DateTime?
+  guests         Guest[]
+  mealTimes      MealTime[]
+  gate           Gate?      @relation(fields: [gateId], references: [id])
+
+  @@map("restaurants")
+}
+
+model MealTime {
+  id           String     @id @default(cuid())
+  restaurantId String
+  name         String
+  nameAr       String?
+  startTime    String
+  endTime      String
+  isActive     Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  cards        Card[]
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@map("meal_times")
+}
+
+model Guest {
+  id           String      @id @default(cuid())
+  firstName    String
+  lastName     String
+  nationalId   String?     @unique
+  passportNo   String?     @unique
+  nationality  String?
+  company      String?
+  jobTitle     String?
+  checkInDate  DateTime?
+  checkOutDate DateTime?
+  roomNumber   String?
+  restaurantId String
+  isActive     Boolean     @default(true)
+  createdBy    String
+  updatedBy    String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  deletedAt    DateTime?
+  accessLogs   AccessLog[]
+  cards        Card[]
+  creator      User        @relation("CreatedBy", fields: [createdBy], references: [id])
+  restaurant   Restaurant  @relation(fields: [restaurantId], references: [id])
+  updater      User?       @relation("UpdatedBy", fields: [updatedBy], references: [id])
+  scanLogs     ScanLog[]
+
+  @@map("guests")
+}
+
+model Card {
+  id         String      @id @default(cuid())
+  guestId    String
+  mealTimeId String
+  cardType   CardType    @default(QR)
+  cardData   String      @unique
+  validFrom  DateTime
+  validTo    DateTime
+  isActive   Boolean     @default(true)
+  usageCount Int         @default(0)
+  maxUsage   Int         @default(1)
+  createdBy  String
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  accessLogs AccessLog[]
+  creator    User        @relation("CreatedBy", fields: [createdBy], references: [id])
+  guest      Guest       @relation(fields: [guestId], references: [id], onDelete: Cascade)
+  mealTime   MealTime    @relation(fields: [mealTimeId], references: [id])
+  scanLogs   ScanLog[]
+
+  @@map("cards")
+}
+
+model ScanLog {
+  id             String   @id @default(cuid())
+  stationId      String?
+  cardId         String?
+  guestId        String?
+  scanTime       DateTime @default(now())
+  isSuccess      Boolean
+  errorCode      String?
+  errorMessage   String?
+  ipAddress      String?
+  userAgent      String?
+  processingTime Int?
+  createdAt      DateTime @default(now())
+  card           Card?    @relation(fields: [cardId], references: [id])
+  guest          Guest?   @relation(fields: [guestId], references: [id])
+
+  @@map("scan_logs")
+}
+
+model AccessLog {
+  id           String   @id @default(cuid())
+  gateId       String
+  cardId       String?
+  guestId      String?
+  scanTime     DateTime @default(now())
+  isSuccess    Boolean
+  accessType   String?
+  errorCode    String?
+  errorMessage String?
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
+  card         Card?    @relation(fields: [cardId], references: [id])
+  gate         Gate     @relation(fields: [gateId], references: [id])
+  guest        Guest?   @relation(fields: [guestId], references: [id])
+
+  @@map("access_logs")
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  MANAGER
+  USER
+}
+
+enum CardType {
+  QR
+  RFID
+}
+
+enum GateStatus {
+  OPEN
+  CLOSED
+  ERROR
+  MAINTENANCE
+
+  @@map("gate_status")
+}
+
+enum ErrorSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ErrorCategory {
+  JAVASCRIPT
+  NETWORK
+  AUTHENTICATION
+  VALIDATION
+  DATABASE
+  GATE_COMMUNICATION
+  SCANNING
+  UNKNOWN
+}
