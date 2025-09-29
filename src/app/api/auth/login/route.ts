@@ -89,7 +89,7 @@ const response = new NextResponse(
     // Set refresh token as httpOnly cookie
     response.cookies.set('refreshToken', refreshToken, {
       httpOnly: true,
-      secure: false, // Set to false for localhost development
+      secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
       sameSite: 'lax', // Changed from 'strict' to 'lax' for better compatibility
       maxAge: 30 * 24 * 60 * 60, // 30 days
       path: '/'
@@ -98,7 +98,7 @@ const response = new NextResponse(
     // Set access token as httpOnly cookie (optional, for SSR)
     response.cookies.set('accessToken', accessToken, {
       httpOnly: true,
-      secure: false, // Set to false for localhost development  //secure: process.env.NODE_ENV === 'production',
+      secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
       sameSite: 'lax', // Changed from 'strict' to 'lax' for better compatibility
       maxAge: 7 * 24 * 60 * 60, // 7 days to match JWT_EXPIRES_IN
       path: '/'
@@ -107,7 +107,7 @@ const response = new NextResponse(
     // Also set token cookie for compatibility with reports page
     response.cookies.set('token', accessToken, {
       httpOnly: true,
-      secure: false,
+      secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
       sameSite: 'lax',
       maxAge: 7 * 24 * 60 * 60,
       path: '/'
