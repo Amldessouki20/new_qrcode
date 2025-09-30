@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -268,7 +269,6 @@ enum UserRole {
 
 enum CardType {
   QR
-  RFID
 }
 
 enum GateStatus {
