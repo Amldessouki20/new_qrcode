@@ -10,11 +10,11 @@ export async function POST(request: NextRequest) {
     console.log('Debug Login - Starting authentication for:', username);
 
     // Test database connection first
-    let dbConnected = false;
+    // let dbConnected = false;
     try {
       await prisma.$connect();
       await prisma.user.count();
-      dbConnected = true;
+      // dbConnected = true;
       console.log('Debug Login - Database connection: SUCCESS');
     } catch (dbError) {
       console.error('Debug Login - Database connection failed:', dbError);
