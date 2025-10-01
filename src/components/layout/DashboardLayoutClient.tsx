@@ -204,7 +204,7 @@ export function DashboardLayoutClient({ children, user }: DashboardLayoutClientP
             {/* Desktop user menu */}
             <div className="hidden lg:block">
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="space-x-2">
                   <Avatar className="h-8 w-8">
                     <AvatarImage src="" alt={getUserDisplayName()} />
@@ -212,12 +212,12 @@ export function DashboardLayoutClient({ children, user }: DashboardLayoutClientP
                   </Avatar>
                   <span className="hidden md:inline">{getUserDisplayName()}</span>
                 </Button>
-              </DropdownMenuTrigger>
+              </DropdownMenuTrigger> 
               <DropdownMenuContent align={isRTL ? "start" : "end"} className="w-56">
-                <DropdownMenuLabel>{t('profile.title')}</DropdownMenuLabel>
+                    <DropdownMenuLabel>{t('profile.title')}</DropdownMenuLabel> 
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link href={`/${locale}/profile`} className="flex items-center space-x-2">
+                     <Link href={`/${locale}/profile`} className="flex items-center space-x-2">
                     <User className="h-4 w-4" />
                     <span>{t('profile.title')}</span>
                   </Link>
