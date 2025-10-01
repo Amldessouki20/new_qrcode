@@ -43,6 +43,14 @@ export const PERMISSIONS = {
   GATE_LIST: "gates.read",
   GATE_VIEW: "gates.read",
   GATE_CONTROL: "gates.control",
+
+  // Accommodation Management
+  ACCOMMODATION_CREATE: "accommodation.create",
+  ACCOMMODATION_READ: "accommodation.read",
+  ACCOMMODATION_UPDATE: "accommodation.update",
+  ACCOMMODATION_DELETE: "accommodation.delete",
+  ACCOMMODATION_LIST: "accommodation.read",
+
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -241,6 +249,14 @@ export const PERMISSION_GROUPS = {
     PERMISSIONS.GATE_VIEW,
     PERMISSIONS.GATE_CONTROL,
   ],
+  // Accommodation Management
+  ACCOMMODATION_MANAGEMENT: [
+    PERMISSIONS.ACCOMMODATION_CREATE,
+    PERMISSIONS.ACCOMMODATION_READ,
+    PERMISSIONS.ACCOMMODATION_UPDATE,
+    PERMISSIONS.ACCOMMODATION_DELETE,
+    PERMISSIONS.ACCOMMODATION_LIST,
+  ],
 } as const;
 
 /**
@@ -305,6 +321,7 @@ export function hasRolePermission(
       PERMISSIONS.GATE_LIST,
       PERMISSIONS.GATE_VIEW,
       PERMISSIONS.GATE_CONTROL,
+      PERMISSIONS.ACCOMMODATION_READ,
     ];
     return managerPermissions.includes(permission);
   }
@@ -317,6 +334,7 @@ export function hasRolePermission(
       PERMISSIONS.SCAN_LOG_READ,
       PERMISSIONS.GATE_READ,
       PERMISSIONS.GATE_VIEW,
+      PERMISSIONS.ACCOMMODATION_READ,
     ];
     return userPermissions.includes(permission);
   }
