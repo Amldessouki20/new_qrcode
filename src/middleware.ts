@@ -14,7 +14,7 @@ const intlMiddleware = createMiddleware(routing);
 const PROTECTED_ROUTES = [
   '/dashboard', '/users', '/guests', '/cards',
   '/gates', '/reports', '/restaurants', '/scan-logs',
-  '/profile', '/settings','/accommodation'
+  '/accommodation'
 ];
 
 const PUBLIC_ROUTES = ['/', '/login', '/forgot-password', '/reset-password'];
@@ -97,9 +97,9 @@ export default async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     // English routes
-    '/((?:en|ar)/)?((?:dashboard|users|guests|cards|gates|reports|restaurants|scan-logs|accommodation|settings)/?)',
+    '/((?:en|ar)/)?((?:dashboard|users|guests|cards|gates|reports|restaurants|scan-logs|accommodation)/?)',
     // Arabic routes
-    '/((?:en|ar)/)?((?:لوحة-التحكم|المستخدمين|الضيوف|البطاقات|البوابات|التقارير|المطاعم|سجلات-المسح|الاسكان|الإعدادات)/?)',
+    '/((?:en|ar)/)?((?:لوحة-التحكم|المستخدمين|الضيوف|البطاقات|البوابات|التقارير|المطاعم|سجلات-المسح|الاسكان|)/?)',
     '/',
     '/login',
     '/تسجيل-الدخول',
