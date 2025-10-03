@@ -24,7 +24,7 @@ import {
   CreditCard,
   FileText,
   User,
-   Settings,
+  //  Settings,
   LogOut,
   Menu,
   Shield,
@@ -216,18 +216,18 @@ export function DashboardLayoutClient({ children, user }: DashboardLayoutClientP
               <DropdownMenuContent align={isRTL ? "start" : "end"} className="w-56">
                     <DropdownMenuLabel>{t('profile.title')}</DropdownMenuLabel> 
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
+                {/* <DropdownMenuItem asChild>
                      <Link href={`/${locale}/profile`} className="flex items-center space-x-2">
                     <User className="h-4 w-4" />
                     <span>{t('profile.title')}</span>
                   </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
+                </DropdownMenuItem> */}
+                {/* <DropdownMenuItem asChild>
                   <Link href={`/${locale}/settings`} className="flex items-center space-x-2">
                     <Settings className="h-4 w-4" />
                     <span>{t('common.settings')}</span>
                   </Link>
-                </DropdownMenuItem>
+                </DropdownMenuItem> */}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} className="flex items-center space-x-2 text-red-600">
                   <LogOut className="h-4 w-4" />
