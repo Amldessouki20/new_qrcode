@@ -125,13 +125,13 @@ export async function generatePrintQRCodeDataURL(
   options: QRCodeOptions = {}
 ): Promise<string> {
   const qrOptions = {
-    width: options.size || 800, // Higher resolution for printing
-    margin: options.margin || 10, // Larger margin for better scanning
+    width: options.size || 1000, // دقة أعلى للطباعة
+    margin: options.margin || 8, // هامش أكبر لمسح أفضل
     color: {
       dark: options.color?.dark || '#000000',
       light: options.color?.light || '#FFFFFF',
     },
-    errorCorrectionLevel: options.errorCorrectionLevel || 'H', // Highest error correction
+    errorCorrectionLevel: options.errorCorrectionLevel || 'H', // أعلى مستوى تصحيح أخطاء
   };
 
   try {
@@ -162,22 +162,36 @@ export function createSimpleCardDataString(cardNumber: string): string {
  * Create ultra-compact card data string (Optimized for phone camera scanning)
  */
 export function createUltraCompactCardDataString(cardData: CardData): string {
-  // تنسيق محسن للمسح من كاميرا الهاتف مع معلومات الوجبات
+  // تنسيق محسن للمسح من كاميرا الهاتف مع معلومات الوجبات الكاملة
   const data = {
-    i: cardData.id.slice(-6), // آخر 6 أحرف من ID
-    c: cardData.cardNumber.slice(-8), // آخر 8 أرقام من البطاقة
-    g: cardData.guestName?.split(' ')[0]?.slice(0, 8) ?? cardData.guestId?.slice(-6) ?? 'GUEST', // اسم مختصر
+    i: cardData.id, // ID كامل
+    c: cardData.cardNumber, // رقم البطاقة كامل
+    g: cardData.guestName || cardData.guestId || 'GUEST', // اسم الضيف كامل
     e: cardData.expiryDate.split('T')[0], // تاريخ الانتهاء فقط
     m: cardData.mealTimeIds.length, // عدد الوجبات
-    r: cardData.restaurantName ? cardData.restaurantName.slice(0, 6) : 'REST', // مطعم مختصر
+    r: cardData.restaurantName || 'REST', // اسم المطعم كامل
     t: Math.floor(Date.now() / 1000), // timestamp للتحقق
-    // إضافة معلومات الوجبات المضغوطة
+    // إضافة معلومات الوجبات الكاملة
     mt: cardData.allowedMealTimes?.map(mt => ({
       i: mt.id,
-      n: mt.name.slice(0, 10), // اختصار اسم الوجبة
+      n: mt.name, // اسم الوجبة كامل
       s: mt.startTime,
       e: mt.endTime
-    })) || []
+    })) || [],
+    // إضافة معلومات الضيف الكاملة
+    gn: cardData.guestName || '',
+    jt: cardData.jobTitle || '',
+    co: cardData.company || '',
+    na: cardData.nationality || '',
+    rm: cardData.roomNumber || '',
+    // إضافة معلومات المطعم الكاملة
+    rn: cardData.restaurantName || '',
+    rl: cardData.restaurantLocation || '',
+    // إضافة معلومات الاستخدام
+    mu: cardData.maxUsage || 1,
+    uc: cardData.usageCount || 0,
+    vf: cardData.validFrom || '',
+    vt: cardData.expiryDate || ''
   };
   
   return JSON.stringify(data);

@@ -97,7 +97,7 @@ export default async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     // English routes
-    '/((?:en|ar)/)?((?:dashboard|users|guests|cards|gates|reports|restaurants|scan-logs|accommodation|settings)/?)',
+    '/((?:en|ar)/)?((?:dashboard|users|guests|cards|gates|reports|restaurants|scan-logs|accommodation)/?)',
     // Arabic routes
     '/((?:en|ar)/)?((?:لوحة-التحكم|المستخدمين|الضيوف|البطاقات|البوابات|التقارير|المطاعم|سجلات-المسح|الاسكان|)/?)',
     '/',

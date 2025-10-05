@@ -163,12 +163,12 @@ export function CardVisualCompact({ card, locale = 'en' }: CardVisualCompactProp
             </div>
             {(card.maxUsage || card.usageCount !== undefined) && (
               <div className="flex justify-between items-center">
-                {/* <span className="text-xs font-medium text-gray-600">
+                <span className="text-xs font-medium text-gray-600">
                   {isArabic ? 'الاستخدام:' : 'Usage:'}
-                </span> */}
-                {/* <span className="text-xs text-gray-700 font-mono">
+                </span>
+                <span className="text-xs text-gray-700 font-mono">
                   {card.usageCount || 0}{card.maxUsage ? `/${card.maxUsage}` : ''}
-                </span> */}
+                </span>
               </div>
             )}
           </div>
@@ -179,10 +179,10 @@ export function CardVisualCompact({ card, locale = 'en' }: CardVisualCompactProp
           <div className="text-center bg-white rounded-lg p-3 shadow-sm">
             <QRCodeSVG
               value={card.cardData}
-              size={120}
+              size={140}
               level="H"
               includeMargin={true}
-              marginSize={2}
+              marginSize={4}
               bgColor="#FFFFFF"
               fgColor="#000000"
               className="border-2 border-gray-100 rounded-md"
