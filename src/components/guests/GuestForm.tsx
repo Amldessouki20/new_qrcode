@@ -286,7 +286,7 @@ export function GuestForm({ initialData, isEdit = false }: GuestFormProps) {
               <Input  className="h-8 text-sm px-2 max-w-xs"
                 id="religion"
                 type="text"
-                value={formData.room}
+                value={formData.religion}
                 onChange={(e) => handleInputChange('religion', e.target.value)}
                 placeholder={t('guests.religionPlaceholder')}
                 required
