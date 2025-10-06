@@ -16,9 +16,10 @@ const createGuestSchema = z.object({
   passportNo: z.string().max(50, 'Passport number too long').optional(),
   nationality: z.string().max(50, 'Nationality too long').optional(),
   company: z.string().max(100, 'Company name too long').optional(),
+  religion: z.string().max(100, 'Religion too long').optional(),
   jobTitle: z.string().max(100, 'Job title too long').optional(),
-  checkInDate: z.string().datetime().optional(),
-  checkOutDate: z.string().datetime().optional(),
+  invalidDate: z.string().datetime().optional(),
+  expiredDate: z.string().datetime().optional(),
   roomNumber: z.string().max(20, 'Room number too long').optional(),
   isActive: z.boolean().default(true),
   restaurantId: z.string().min(1, 'Restaurant ID is required'),
@@ -68,6 +69,7 @@ export async function GET(request: NextRequest) {
         nationalId?: { contains: string; mode?: 'insensitive' };
         passportNo?: { contains: string; mode?: 'insensitive' };
         company?: { contains: string; mode?: 'insensitive' };
+        religion?: { contains: string; mode?: 'insensitive' };
       }>;
       nationality?: { contains: string; mode: 'insensitive' } | string;
       restaurantId?: string;
@@ -104,6 +106,10 @@ export async function GET(request: NextRequest) {
             contains: search,
             mode: 'insensitive',
           },
+          religion: {
+            contains: search,
+            mode: 'insensitive',
+          },
         },
       ];
     }
@@ -126,6 +132,7 @@ export async function GET(request: NextRequest) {
       lastName?: 'asc' | 'desc';
       nationality?: 'asc' | 'desc';
       company?: 'asc' | 'desc';
+      religion?: 'asc' | 'desc';
       createdAt?: 'asc' | 'desc';
     } = {};
     if (['firstName', 'lastName', 'nationality', 'company', 'createdAt'].includes(sortBy)) {
@@ -148,6 +155,7 @@ export async function GET(request: NextRequest) {
         passportNo: true,
         nationality: true,
         company: true,
+        religion: true,
         jobTitle: true,
         checkInDate: true,
         checkOutDate: true,
@@ -317,10 +325,11 @@ export async function POST(request: NextRequest) {
         passportNo: validatedData.passportNo || null,
         nationality: validatedData.nationality || null,
         company: validatedData.company || null,
+        religion: validatedData.religion || null,
         jobTitle: validatedData.jobTitle || null,
         roomNumber: validatedData.roomNumber || null,
-        checkInDate: validatedData.checkInDate ? new Date(validatedData.checkInDate) : null,
-        checkOutDate: validatedData.checkOutDate ? new Date(validatedData.checkOutDate) : null,
+        checkInDate: validatedData.invalidDate ? new Date(validatedData.invalidDate) : null,
+        checkOutDate: validatedData.expiredDate ? new Date(validatedData.expiredDate) : null,
         restaurant: {
           connect: { id: validatedData.restaurantId }
         },
@@ -335,8 +344,8 @@ export async function POST(request: NextRequest) {
 
       // Create card for the guest
       const cardNumber = generateCardNumber();
-      const validFrom = validatedData.checkInDate ? new Date(validatedData.checkInDate) : new Date();
-      const validTo = validatedData.checkOutDate ? new Date(validatedData.checkOutDate) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      const validFrom = validatedData.invalidDate ? new Date(validatedData.invalidDate) : new Date();
+      const validTo = validatedData.expiredDate ? new Date(validatedData.expiredDate) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
       
       // Prepare enhanced card data with full guest information for QR code
       const cardDataForQR = {
@@ -351,6 +360,7 @@ export async function POST(request: NextRequest) {
         guestName: `${validatedData.firstName} ${validatedData.lastName}`,
         jobTitle: validatedData.jobTitle || '',
         company: validatedData.company || '',
+        religion: validatedData.religion || '',
         nationality: validatedData.nationality || '',
         roomNumber: validatedData.roomNumber || '',
         
@@ -420,6 +430,7 @@ export async function POST(request: NextRequest) {
           passportNo: true,
           nationality: true,
           company: true,
+          religion: true,
           jobTitle: true,
           checkInDate: true,
           checkOutDate: true,
@@ -447,7 +458,7 @@ export async function POST(request: NextRequest) {
               validFrom: true,
               validTo: true,
               maxUsage: true,
-              usageCount: true,
+               usageCount: true,
               isActive: true,
             },
           },

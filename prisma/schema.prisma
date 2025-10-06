@@ -181,6 +181,7 @@ model Guest {
   checkInDate  DateTime?
   checkOutDate DateTime?
   roomNumber   String?
+  religion     String?
   restaurantId String
   isActive     Boolean     @default(true)
   createdBy    String

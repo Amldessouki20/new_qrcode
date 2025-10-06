@@ -32,6 +32,8 @@ interface GuestFormProps {
     nationality: string;
     room: string;
     company?: string;
+    religion?: string;
+    jobTitle?: string;
     restaurantId?: string;
     restaurantType?: string;
     isActive: boolean;
@@ -51,6 +53,8 @@ export function GuestForm({ initialData, isEdit = false }: GuestFormProps) {
     nationality: initialData?.nationality ?? '',
     room: initialData?.room ?? '',
     company: initialData?.company ?? '',
+    religion: initialData?.religion ?? '',
+    jobTitle: initialData?.jobTitle ?? '',
     restaurantId: initialData?.restaurantId ?? '',
     restaurantType: initialData?.restaurantType ?? '',
     isActive: initialData?.isActive ?? true,
@@ -67,6 +71,8 @@ export function GuestForm({ initialData, isEdit = false }: GuestFormProps) {
       lastName: string;
       nationalId?: string;
       company?: string;
+      religion?: string;
+      jobTitle?: string;
       roomNumber?: string;
     };
     card: {
@@ -142,6 +148,8 @@ export function GuestForm({ initialData, isEdit = false }: GuestFormProps) {
         nationality: string;
         roomNumber: string;
         company: string;
+        religion?: string;
+        jobTitle?: string;
         restaurantId: string;
         restaurantType: string;
         isActive: boolean;
@@ -156,6 +164,8 @@ export function GuestForm({ initialData, isEdit = false }: GuestFormProps) {
         nationality: formData.nationality,
         roomNumber: formData.room,
         company: formData.company,
+        religion: formData.religion,
+        jobTitle: formData.jobTitle,
         restaurantId: formData.restaurantId,
         restaurantType: formData.restaurantType,
         isActive: formData.isActive,
@@ -247,7 +257,7 @@ export function GuestForm({ initialData, isEdit = false }: GuestFormProps) {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             <div className="space-y-2">
               <Label htmlFor="nationality">{t('guests.nationality')}</Label>
               <Input  className="h-8 text-sm px-2 max-w-xs"
@@ -268,6 +278,17 @@ export function GuestForm({ initialData, isEdit = false }: GuestFormProps) {
                 value={formData.room}
                 onChange={(e) => handleInputChange('room', e.target.value)}
                 placeholder={t('guests.roomPlaceholder')}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="religion">{t('guests.religion')}</Label>
+              <Input  className="h-8 text-sm px-2 max-w-xs"
+                id="religion"
+                type="text"
+                value={formData.room}
+                onChange={(e) => handleInputChange('religion', e.target.value)}
+                placeholder={t('guests.religionPlaceholder')}
                 required
               />
             </div>

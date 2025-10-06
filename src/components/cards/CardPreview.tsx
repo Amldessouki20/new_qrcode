@@ -12,13 +12,14 @@ interface CardPreviewProps {
     isActive: boolean;
     validFrom: Date;
     validTo: Date;
-    usageCount: number;
-    maxUsage: number | null;
+    // usageCount: number;
+    // maxUsage: number | null;
     guest?: {
       firstName: string;
       lastName: string;
       nationalId: string;
       company?: string;
+      religion?: string;
       restaurant?: {
         name: string;
       };
@@ -104,6 +105,12 @@ export function CardPreview({ card, size = 'small' }: CardPreviewProps) {
             {card.guest?.company && (
               <div className="text-xs text-blue-100 mb-2">
                 {card.guest.company}
+              </div>
+            )}
+               {/* religion */}
+            {card.guest?.religion && (
+              <div className="text-xs text-blue-100 mb-2">
+                {card.guest.religion}
               </div>
             )}
             

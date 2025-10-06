@@ -23,6 +23,8 @@ interface Guest {
   nationality: string;
   room: string;
   company?: string;
+  religion?: string;
+  jobTitle?: string;
   restaurantId?: string;
   email?: string;
   phone?: string;
@@ -206,6 +208,16 @@ const GuestManagement: React.FC<GuestManagementProps> = ({
                       </span>
                       <p className="text-muted-foreground">
                         {guest.cardNumber}
+                      </p>
+                    </div>
+                  )}
+                  {guest.religion && (
+                    <div>
+                      <span className="font-medium">
+                        {t("guests.religion")}:
+                      </span>
+                      <p className="text-muted-foreground">
+                        {guest.religion}
                       </p>
                     </div>
                   )}

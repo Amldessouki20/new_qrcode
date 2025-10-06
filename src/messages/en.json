@@ -345,6 +345,8 @@
   
   },
   "guests": {
+    "religion":"Religion",
+    "religionPlaceholder":"Religion",
     "deleteConfirmation":"deleteConfirmate",
     "viewGuestDescription":"viewGuestDescription",
     "edit":"Edit",

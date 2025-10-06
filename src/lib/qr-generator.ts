@@ -1,4 +1,4 @@
-import QRCode from 'qrcode';
+import QRCode from "qrcode";
 
 interface QRCodeOptions {
   size?: number;
@@ -7,7 +7,7 @@ interface QRCodeOptions {
     dark?: string;
     light?: string;
   };
-  errorCorrectionLevel?: 'L' | 'M' | 'Q' | 'H';
+  errorCorrectionLevel?: "L" | "M" | "Q" | "H";
 }
 
 interface CardData {
@@ -50,18 +50,18 @@ export async function generateQRCodePNG(
     width: options.size || 300,
     margin: options.margin || 2,
     color: {
-      dark: options.color?.dark || '#000000',
-      light: options.color?.light || '#FFFFFF',
+      dark: options.color?.dark || "#000000",
+      light: options.color?.light || "#FFFFFF",
     },
-    errorCorrectionLevel: options.errorCorrectionLevel || 'M',
+    errorCorrectionLevel: options.errorCorrectionLevel || "M",
   };
 
   try {
     const buffer = await QRCode.toBuffer(data, qrOptions);
     return buffer;
   } catch (error) {
-    console.error('Error generating QR code PNG:', error);
-    throw new Error('Failed to generate QR code PNG');
+    console.error("Error generating QR code PNG:", error);
+    throw new Error("Failed to generate QR code PNG");
   }
 }
 
@@ -76,18 +76,18 @@ export async function generateQRCodeSVG(
     width: options.size || 300,
     margin: options.margin || 2,
     color: {
-      dark: options.color?.dark || '#000000',
-      light: options.color?.light || '#FFFFFF',
+      dark: options.color?.dark || "#000000",
+      light: options.color?.light || "#FFFFFF",
     },
-    errorCorrectionLevel: options.errorCorrectionLevel || 'M',
+    errorCorrectionLevel: options.errorCorrectionLevel || "M",
   };
 
   try {
-    const svg = await QRCode.toString(data, { type: 'svg', ...qrOptions });
+    const svg = await QRCode.toString(data, { type: "svg", ...qrOptions });
     return svg;
   } catch (error) {
-    console.error('Error generating QR code SVG:', error);
-    throw new Error('Failed to generate QR code SVG');
+    console.error("Error generating QR code SVG:", error);
+    throw new Error("Failed to generate QR code SVG");
   }
 }
 
@@ -102,18 +102,18 @@ export async function generateQRCodeDataURL(
     width: options.size || 300,
     margin: options.margin || 2,
     color: {
-      dark: options.color?.dark || '#000000',
-      light: options.color?.light || '#FFFFFF',
+      dark: options.color?.dark || "#000000",
+      light: options.color?.light || "#FFFFFF",
     },
-    errorCorrectionLevel: options.errorCorrectionLevel || 'M',
+    errorCorrectionLevel: options.errorCorrectionLevel || "M",
   };
 
   try {
     const dataURL = await QRCode.toDataURL(data, qrOptions);
     return dataURL;
   } catch (error) {
-    console.error('Error generating QR code data URL:', error);
-    throw new Error('Failed to generate QR code data URL');
+    console.error("Error generating QR code data URL:", error);
+    throw new Error("Failed to generate QR code data URL");
   }
 }
 
@@ -128,18 +128,18 @@ export async function generatePrintQRCodeDataURL(
     width: options.size || 1000, // دقة أعلى للطباعة
     margin: options.margin || 8, // هامش أكبر لمسح أفضل
     color: {
-      dark: options.color?.dark || '#000000',
-      light: options.color?.light || '#FFFFFF',
+      dark: options.color?.dark || "#000000",
+      light: options.color?.light || "#FFFFFF",
     },
-    errorCorrectionLevel: options.errorCorrectionLevel || 'H', // أعلى مستوى تصحيح أخطاء
+    errorCorrectionLevel: options.errorCorrectionLevel || "H", // أعلى مستوى تصحيح أخطاء
   };
 
   try {
     const dataURL = await QRCode.toDataURL(data, qrOptions);
     return dataURL;
   } catch (error) {
-    console.error('Error generating print QR code data URL:', error);
-    throw new Error('Failed to generate print QR code data URL');
+    console.error("Error generating print QR code data URL:", error);
+    throw new Error("Failed to generate print QR code data URL");
   }
 }
 
@@ -166,34 +166,35 @@ export function createUltraCompactCardDataString(cardData: CardData): string {
   const data = {
     i: cardData.id, // ID كامل
     c: cardData.cardNumber, // رقم البطاقة كامل
-    g: cardData.guestName || cardData.guestId || 'GUEST', // اسم الضيف كامل
-    e: cardData.expiryDate.split('T')[0], // تاريخ الانتهاء فقط
+    g: cardData.guestName || cardData.guestId || "GUEST", // اسم الضيف كامل
+    e: cardData.expiryDate.split("T")[0], // تاريخ الانتهاء فقط
     m: cardData.mealTimeIds.length, // عدد الوجبات
-    r: cardData.restaurantName || 'REST', // اسم المطعم كامل
+    r: cardData.restaurantName || "REST", // اسم المطعم كامل
     t: Math.floor(Date.now() / 1000), // timestamp للتحقق
     // إضافة معلومات الوجبات الكاملة
-    mt: cardData.allowedMealTimes?.map(mt => ({
-      i: mt.id,
-      n: mt.name, // اسم الوجبة كامل
-      s: mt.startTime,
-      e: mt.endTime
-    })) || [],
+    mt:
+      cardData.allowedMealTimes?.map((mt) => ({
+        i: mt.id,
+        n: mt.name, // اسم الوجبة كامل
+        s: mt.startTime,
+        e: mt.endTime,
+      })) || [],
     // إضافة معلومات الضيف الكاملة
-    gn: cardData.guestName || '',
-    jt: cardData.jobTitle || '',
-    co: cardData.company || '',
-    na: cardData.nationality || '',
-    rm: cardData.roomNumber || '',
+    gn: cardData.guestName || "",
+    jt: cardData.jobTitle || "",
+    co: cardData.company || "",
+    na: cardData.nationality || "",
+    rm: cardData.roomNumber || "",
     // إضافة معلومات المطعم الكاملة
-    rn: cardData.restaurantName || '',
-    rl: cardData.restaurantLocation || '',
+    rn: cardData.restaurantName || "",
+    rl: cardData.restaurantLocation || "",
     // إضافة معلومات الاستخدام
     mu: cardData.maxUsage || 1,
     uc: cardData.usageCount || 0,
-    vf: cardData.validFrom || '',
-    vt: cardData.expiryDate || ''
+    vf: cardData.validFrom || "",
+    vt: cardData.expiryDate || "",
   };
-  
+
   return JSON.stringify(data);
 }
 
@@ -203,70 +204,74 @@ export function createUltraCompactCardDataString(cardData: CardData): string {
 export function parseCardDataString(dataString: string): CardData | null {
   try {
     // إذا كان النص مجرد رقم بطاقة (تنسيق بسيط)
-    if (!dataString.startsWith('{')) {
+    if (!dataString.startsWith("{")) {
       return {
-        id: '',
-        guestId: '',
+        id: "",
+        guestId: "",
         cardNumber: dataString,
-        cardType: 'QR',
-        expiryDate: '',
+        cardType: "QR",
+        expiryDate: "",
         mealTimeIds: [],
       };
     }
 
     const parsed = JSON.parse(dataString);
-    
+
     // التنسيق المحسن الجديد
     if (parsed.i && parsed.g && parsed.c) {
       return {
         id: parsed.i,
         guestId: parsed.g,
         cardNumber: parsed.c,
-        cardType: parsed.t || 'QR',
-        expiryDate: parsed.vt || parsed.e || '', // Support both new (vt) and old (e) formats
+        cardType: parsed.t || "QR",
+        expiryDate: parsed.vt || parsed.e || "", // Support both new (vt) and old (e) formats
         mealTimeIds: parsed.mt?.map((mt: { i: string }) => mt.i) || [], // Extract meal time IDs
-        
+
         // Guest information
-        guestName: parsed.gn || '',
-        jobTitle: parsed.jt || '',
-        company: parsed.co || '',
-        nationality: parsed.na || '',
-        roomNumber: parsed.rm || '',
-        
+        guestName: parsed.gn || "",
+        jobTitle: parsed.jt || "",
+        company: parsed.co || "",
+        nationality: parsed.na || "",
+        roomNumber: parsed.rm || "",
+
         // Restaurant information
-        restaurantName: parsed.rn || '',
-        restaurantLocation: parsed.rl || '',
-        
+        restaurantName: parsed.rn || "",
+        restaurantLocation: parsed.rl || "",
+
         // Meal times information
-        allowedMealTimes: parsed.mt ? parsed.mt.map((mt: { i: string; n: string; s: string; e: string }) => ({
-          id: mt.i,
-          name: mt.n,
-          startTime: mt.s,
-          endTime: mt.e
-        })) : [],
-        
+        allowedMealTimes: parsed.mt
+          ? parsed.mt.map(
+              (mt: { i: string; n: string; s: string; e: string }) => ({
+                id: mt.i,
+                name: mt.n,
+                startTime: mt.s,
+                endTime: mt.e,
+              })
+            )
+          : [],
+
         // Card validity
-        validFrom: parsed.vf || '',
+        validFrom: parsed.vf || "",
         maxUsage: parsed.mu || 1,
         usageCount: parsed.uc || 0,
       };
     }
-    
+
     // تنسيق قديم (للتوافق مع البطاقات الموجودة)
     if (parsed.id || parsed.guestId || parsed.cardNumber) {
       return {
-        id: parsed.id || '',
-        guestId: parsed.guestId || '',
-        cardNumber: parsed.cardNumber || '',
-        cardType: parsed.type || 'QR',
-        expiryDate: parsed.expiry || '',
+        id: parsed.id || "",
+        guestId: parsed.guestId || "",
+        cardNumber: parsed.cardNumber || "",
+        cardType: parsed.type || "QR",
+        expiryDate: parsed.expiry || "",
         mealTimeIds: parsed.meals || [],
       };
     }
 
     return null;
   } catch (error) {
-    console.error('Error parsing card data string:', error);
+    console.error("Error parsing card data string:", error);
     return null;
   }
 }
@@ -277,17 +282,21 @@ export function parseCardDataString(dataString: string): CardData | null {
 export function generateRFIDCardNumber(): string {
   // Generate a 10-digit RFID card number
   const timestamp = Date.now().toString().slice(-6);
-  const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+  const random = Math.floor(Math.random() * 10000)
+    .toString()
+    .padStart(4, "0");
   return timestamp + random;
 }
 
 /**
  * Generate card number based on type
  */
-export function generateCardNumber(cardType: 'QR' | 'RFID' | 'BOTH'): string {
-  const prefix = cardType === 'QR' ? 'QR' : cardType === 'RFID' ? 'RF' : 'CB';
+export function generateCardNumber(cardType: "QR" | "RFID" | "BOTH"): string {
+  const prefix = cardType === "QR" ? "QR" : cardType === "RFID" ? "RF" : "CB";
   const timestamp = Date.now().toString().slice(-8);
-  const random = Math.floor(Math.random() * 100).toString().padStart(2, '0');
+  const random = Math.floor(Math.random() * 100)
+    .toString()
+    .padStart(2, "0");
   return `${prefix}${timestamp}${random}`;
 }
 
@@ -302,7 +311,7 @@ export function validateQRCodeData(dataString: string): boolean {
     // Check if card is not expired
     const expiryDate = new Date(parsed.expiryDate);
     const now = new Date();
-    
+
     return expiryDate > now;
   } catch {
     return false;
@@ -344,7 +353,7 @@ export async function generateCardDataForComponent({
     name: string;
     location?: string | null;
   };
-  
+
   mealTimes: {
     name: string;
     startTime: string;
@@ -353,8 +362,8 @@ export async function generateCardDataForComponent({
   options?: {
     includeQR?: boolean;
     includeRFID?: boolean;
-    cardSize?: 'standard' | 'large' | 'small';
-    orientation?: 'portrait' | 'landscape';
+    cardSize?: "standard" | "large" | "small";
+    orientation?: "portrait" | "landscape";
   };
 }): Promise<{
   card: typeof card;
@@ -367,17 +376,17 @@ export async function generateCardDataForComponent({
   const { includeQR = true } = options;
 
   // Generate QR code if needed
-  let qrCodeDataUrl = '';
+  let qrCodeDataUrl = "";
   if (includeQR) {
     // Use full card data for complete guest information
     qrCodeDataUrl = await generatePrintQRCodeDataURL(card.cardData, {
       size: 500,
       margin: 6,
-      errorCorrectionLevel: 'M',
+      errorCorrectionLevel: "M",
       color: {
-        dark: '#000000',
-        light: '#FFFFFF'
-      }
+        dark: "#000000",
+        light: "#FFFFFF",
+      },
     });
   }
 
@@ -387,6 +396,6 @@ export async function generateCardDataForComponent({
     restaurant,
     mealTimes,
     qrCodeDataUrl,
-    options
+    options,
   };
 }

@@ -84,7 +84,7 @@ export default async function PrintMultipleCardsPage({
       validTo: true,
       isActive: true,
       usageCount: true,
-      maxUsage: true,
+      // maxUsage: true,
       guest: {
         select: {
           id: true,
@@ -133,7 +133,7 @@ export default async function PrintMultipleCardsPage({
       validTo: card.validTo.toISOString(),
       isActive: card.isActive,
       usageCount: card.usageCount ?? 0,
-      maxUsage: card.maxUsage ?? 1,
+      // maxUsage: card.maxUsage ?? 1,
       guest: {
         firstName: card.guest!.firstName,
         lastName: card.guest!.lastName,

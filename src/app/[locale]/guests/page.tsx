@@ -69,6 +69,8 @@ export default async function GuestsPage({
       { firstName: { contains: search, mode: 'insensitive' } },
       { lastName: { contains: search, mode: 'insensitive' } },
       { company: { contains: search, mode: 'insensitive' } },
+      { religion: { contains: search, mode: 'insensitive' } },
+      { jobTitle: { contains: search, mode: 'insensitive' } },
       { nationalId: { contains: search, mode: 'insensitive' } },
       { passportNo: { contains: search, mode: 'insensitive' } },
       { roomNumber: { contains: search, mode: 'insensitive' } },

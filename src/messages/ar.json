@@ -292,6 +292,12 @@
     "activeStatusDescription": "تحديد ما إذا كان المطعم نشطاً أم لا"
   },
   "guests": {
+    "religion":"الديانه",
+    "religionDescription":"الديانه",
+    "deleteConfirmation":"هل أنت متأكد من حذف الضيف؟",
+    "viewGuestDescription":"عرض تفاصيل الضيف",
+    "edit":"تعديل",
+    "personalInformation":"معلومات شخصية",
     "descriptionGuest":"تسجيل ضيف جديد في النظام",
     "update": "تحديث",
     "fullName": "الاسم الكامل",

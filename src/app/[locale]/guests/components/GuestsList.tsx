@@ -35,6 +35,7 @@ interface Guest {
   nationality: string | null;
   roomNumber: string | null;
   company?: string | null;
+  religion?: string | null;
   jobTitle?: string | null;
   checkInDate: Date | null;
   checkOutDate: Date | null;
@@ -197,6 +198,7 @@ export function GuestsList({ guests, totalCount, currentPage, totalPages, search
                   <TableHead>{t('guests.nationality')}</TableHead>
                   <TableHead>{t('guests.room')}</TableHead>
                   <TableHead>{t('guests.company')}</TableHead>
+                  <TableHead>{t('guests.religion')}</TableHead>
                   <TableHead>{t('guests.cards')}</TableHead>
                   <TableHead>{t('guests.restaurant')}</TableHead>
                   <TableHead className="text-right">{t('common.actions')}</TableHead>
@@ -235,6 +237,7 @@ export function GuestsList({ guests, totalCount, currentPage, totalPages, search
                       <TableCell>{guest.nationality}</TableCell>
                       <TableCell>{guest.roomNumber}</TableCell>
                       <TableCell>{guest.company || '-'}</TableCell>
+                      <TableCell>{guest.religion || '-'}</TableCell>
                       <TableCell>
                         <div className="space-y-1">
                           {guest.cards.map((card) => (

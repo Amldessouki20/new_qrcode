@@ -35,7 +35,7 @@ interface Card {
     startTime: string;
     endTime: string;
   };
-  maxUsage: number;
+  // maxUsage: number;
   usageCount?: number;
 }
 
