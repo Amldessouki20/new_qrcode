@@ -25,6 +25,7 @@ import { Search, Plus, MoreHorizontal, Edit, Trash2, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { parseCardDataString } from '@/lib/qr-generator';
+import { GuestAvatar } from '@/components/ui/guest-avatar';
 
 interface Guest {
   id: string;
@@ -38,7 +39,8 @@ interface Guest {
   religion?: string | null;
   jobTitle?: string | null;
   checkInDate: Date | null;
-  checkOutDate: Date | null;
+  expiredDate: Date | null;
+  profileImagePath?: string | null;
   cards: {
     id: string;
     cardData: string;
@@ -207,7 +209,7 @@ export function GuestsList({ guests, totalCount, currentPage, totalPages, search
               <TableBody>
                 {guests.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8">
+                    <TableCell colSpan={9} className="text-center py-8">
                       <div className="text-muted-foreground">
                         {searchQuery ? t('guests.noSearchResults') : t('guests.noGuests')}
                       </div>
@@ -217,12 +219,20 @@ export function GuestsList({ guests, totalCount, currentPage, totalPages, search
                   guests.map((guest) => (
                     <TableRow key={guest.id}>
                       <TableCell>
-                        <div>
-                          <div className="font-medium">
-                            {guest.firstName} {guest.lastName}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            {guest.jobTitle}
+                        <div className="flex items-center gap-3">
+                          <GuestAvatar
+                          src={guest.profileImagePath}
+                          alt={`${guest.firstName} ${guest.lastName}`}
+                          fallbackText={`${guest.firstName.charAt(0)}${guest.lastName.charAt(0)}`}
+                          size="sm"
+                        />
+                          <div>
+                            <div className="font-medium">
+                              {guest.firstName} {guest.lastName}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {guest.jobTitle}
+                            </div>
                           </div>
                         </div>
                       </TableCell>
@@ -232,12 +242,15 @@ export function GuestsList({ guests, totalCount, currentPage, totalPages, search
                           <div className="text-muted-foreground">
                             {guest.nationalId ? t('guests.nationalId') : guest.passportNo ? t('guests.passport') : ''}
                           </div>
+                        
                         </div>
                       </TableCell>
                       <TableCell>{guest.nationality}</TableCell>
                       <TableCell>{guest.roomNumber}</TableCell>
                       <TableCell>{guest.company || '-'}</TableCell>
-                      <TableCell>{guest.religion || '-'}</TableCell>
+                       <TableCell>{guest.religion|| "-"}</TableCell>
+                      
+                    
                       <TableCell>
                         <div className="space-y-1">
                           {guest.cards.map((card) => (
@@ -266,6 +279,7 @@ export function GuestsList({ guests, totalCount, currentPage, totalPages, search
                         </div>
                       </TableCell>
                       <TableCell>{guest.restaurant.name}</TableCell>
+                     
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>

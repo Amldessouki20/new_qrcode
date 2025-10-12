@@ -1,11 +1,11 @@
 {
   "common": {
-    "deleting":"deleting",
-    "saving":"saving",
+    "deleting": "deleting",
+    "saving": "saving",
     "loginSuccess": "Login successful",
-     "logout": "LogOut",
-     "dashboard": "Dashboard",
-     "view": "View",
+    "logout": "LogOut",
+    "dashboard": "Dashboard",
+    "view": "View",
     "pageNotFound": "Page Not Found",
     "pageNotFoundDescription": "The page you are looking for does not exist.",
     "goHome": "Go Home",
@@ -345,6 +345,8 @@
   
   },
   "guests": {
+    "imageUploadHint":"Upload Image",
+    "currentImage":"Current Image",
     "religion":"Religion",
     "religionPlaceholder":"Religion",
     "deleteConfirmation":"deleteConfirmate",
@@ -379,7 +381,6 @@
      "selectRestaurant":"selectRestaurant",
      "cardInformation":"cardInformation",
      "checkInDate":"checkInDate",
-     "checkOutDate":"checkOutDate",
      "maxMealsPerDay":"maxMealsPerDay",
      "isActive":"Active",
      "create":"create",
@@ -448,7 +449,8 @@
     "guestUpdated": "Guest updated successfully",
     "guestDeleted": "Guest deleted successfully",
     "checkIn": "Check In",
-    "checkOut": "Check Out",
+    "expiredDate": "Expired Date",
+  
     "roomNumber": "Room Number",
     "arrivalDate": "Arrival Date",
     "departureDate": "Departure Date",
@@ -456,7 +458,22 @@
    
     "passportNumber": "Passport Number",
     "specialRequests": "Special Requests",
-    "preferences": "Preferences"
+    "preferences": "Preferences",
+    "profileImage": "Profile Image",
+    "uploadImage": "Upload Image",
+    "changeImage": "Change Image",
+    "removeImage": "Remove Image",
+    "imageUploadDescription": "Upload a profile image for the guest",
+    "imageUploadError": "Error uploading image",
+    "imageUploadSuccess": "Image uploaded successfully",
+    "imageDeleteSuccess": "Image deleted successfully",
+    "dragDropImage": "Drag and drop an image here, or click to select",
+    "imageRequirements": "JPG, PNG or WebP. Max size 5MB",
+    "imageProcessing": "Processing image...",
+    "imageUploading": "Uploading image...",
+    "imageTooLarge": "Image is too large. Maximum size is 5MB",
+    "invalidImageType": "Invalid image type. Please use JPG, PNG or WebP",
+    "imageCompressionFailed": "Failed to compress image"
   },
   "cards": {
     "addNewDescription":"addNewDescription",
@@ -1246,11 +1263,14 @@
 
   "accommodation": {
     "title": "Accommodation",
-    
+    "errorCode":"Error Code",
     "description": "Manage accommodation scan results",
     "scanResults": {
       "title": "Scan Results",
       "description": "View and manage card scan results"
+    },
+    "record":{
+      "errorCode":"Error Code"
     },
     "scanTable": {
       "title": "Scan Results Table",
@@ -1278,6 +1298,9 @@
       
     }
  },
+   "record": {
+    "errorCode": "Error code"
+  },
     "status": {
       "success": "Success",
       "failed": "Failed",
@@ -1289,11 +1312,12 @@
     },
       
     "search":{
-       "placeholder":"Search",
+       "placeholder":"Search by name, company, room, restaurant, or message",
        "refresh":"Refresh"
     },
     "table":{
      "guestName":"Guest Name",
+     "company":"Company",
      "roomNumber":"Room Number",
      "restaurant":"Restaurant",
      "scanTime":"Scan Time",
@@ -1317,8 +1341,12 @@
       "usageLimitExceeded": "Usage limit exceeded",
       "outsideMealTime": "Outside meal time",
       "systemError": "System error"
+    },
+    "pagination":{
+      "showing":"Showing {start} to {end} of {total} guests",
+      "previous":"Previous",
+      "next":"Next",
+      "page":"Page",
+      "of":"Of"
     }
-  
-
-
-}
+  }

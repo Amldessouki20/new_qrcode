@@ -10,6 +10,9 @@ import AccommodationScanTable from '@/components/accommodation/AccommodationScan
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { UserRole } from '@prisma/client';
+import { TestTube } from 'lucide-react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 
 
 
@@ -70,16 +73,35 @@ export default async function AccommodationPage({ params }: AccommodationPagePro
 
   return (
     <DashboardLayout user={user}>
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Page Header */}
-        <div className="flex flex-col space-y-2">
+        {/* <div className="flex flex-col space-y-2">
           <h1 className="text-3xl font-bold tracking-tight">
             {t('title')}
           </h1>
           <p className="text-muted-foreground">
             {t('description')}
           </p>
+        </div> */}
+         <div className="flex flex-col space-y-2">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">
+                {t('title')}
+              </h1>
+              <p className="text-muted-foreground">
+                {t('description')}
+              </p>
+            </div>
+            <Link href={`/${locale}/accommodation/manual-scan`}>
+              <Button variant="outline" className="flex items-center gap-2">
+                <TestTube className="h-4 w-4" />
+                المسح اليدوي
+              </Button>
+            </Link>
+          </div>
         </div>
+         
 
         {/* Scan Results Table */}
         <Card>

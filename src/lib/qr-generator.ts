@@ -21,6 +21,7 @@ interface CardData {
   guestName?: string;
   jobTitle?: string;
   company?: string;
+  religion?: string;
   nationality?: string;
   roomNumber?: string;
   // Restaurant information
@@ -184,6 +185,7 @@ export function createUltraCompactCardDataString(cardData: CardData): string {
     jt: cardData.jobTitle || "",
     co: cardData.company || "",
     na: cardData.nationality || "",
+    re: cardData.religion || "",
     rm: cardData.roomNumber || "",
     // إضافة معلومات المطعم الكاملة
     rn: cardData.restaurantName || "",
@@ -231,6 +233,7 @@ export function parseCardDataString(dataString: string): CardData | null {
         guestName: parsed.gn || "",
         jobTitle: parsed.jt || "",
         company: parsed.co || "",
+        religion: parsed.re || "",
         nationality: parsed.na || "",
         roomNumber: parsed.rm || "",
 

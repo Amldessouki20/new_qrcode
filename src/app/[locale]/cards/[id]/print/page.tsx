@@ -87,6 +87,7 @@ export default async function PrintCardPage({
               guest: {
                 firstName: card.guest.firstName,
                 lastName: card.guest.lastName,
+                ...(card.guest.profileImagePath && { profileImagePath: card.guest.profileImagePath }),
                 ...(card.guest.nationalId && { nationalId: card.guest.nationalId }),
                 ...(card.guest.passportNo && { passportNo: card.guest.passportNo }),
                 ...(card.guest.nationality && { nationality: card.guest.nationality }),
@@ -102,9 +103,7 @@ export default async function PrintCardPage({
                   name: ''
                 }
               },
-              mealTime: card.mealTime,
-              maxUsage: card.maxUsage,
-              usageCount: card.usageCount
+              mealTime: card.mealTime
             }}
             locale={locale}
           />

@@ -179,7 +179,7 @@ model Guest {
   company      String?
   jobTitle     String?
   checkInDate  DateTime?
-  checkOutDate DateTime?
+  expiredDate DateTime?
   roomNumber   String?
   religion     String?
   restaurantId String
@@ -189,6 +189,11 @@ model Guest {
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
   deletedAt    DateTime?
+   profileImagePath    String?   // Path to the original image
+  thumbnailImagePath  String?   // Path to the thumbnail image
+  imageUploadedAt     DateTime? // When the image was uploaded
+  imageSize           Int?      // Image file size in bytes
+  imageMimeType       String?   // MIME type of the image (e.g., image/jpeg)
   accessLogs   AccessLog[]
   cards        Card[]
   creator      User        @relation("CreatedBy", fields: [createdBy], references: [id])
@@ -196,6 +201,23 @@ model Guest {
   updater      User?       @relation("UpdatedBy", fields: [updatedBy], references: [id])
   scanLogs     ScanLog[]
 
+  // Database indexes for performance optimization
+  @@index([restaurantId])           // For filtering guests by restaurant
+  @@index([isActive])               // For filtering active/inactive guests
+  @@index([createdAt])              // For sorting by creation date
+  @@index([checkInDate])            // For filtering by check-in date
+  @@index([expiredDate])           // For filtering by expiration date
+  @@index([firstName, lastName])    // For searching by name
+  @@index([nationalId])             // For searching by national ID (already unique but helps with lookups)
+  @@index([passportNo])             // For searching by passport number
+  @@index([roomNumber])             // For filtering by room number
+  @@index([company])                // For filtering by company
+  @@index([nationality])            // For filtering by nationality
+  @@index([profileImagePath])       // For checking if guest has profile image
+  @@index([imageUploadedAt])        // For sorting by image upload date
+  @@index([restaurantId, isActive]) // Composite index for common query pattern
+  @@index([createdBy])              // For filtering by creator
+  @@index([updatedBy])              // For filtering by updater
   @@map("guests")
 }
 

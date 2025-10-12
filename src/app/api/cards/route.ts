@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (cardType) {
-      where.cardType = { equals: cardType as 'QR' | 'RFID' };
+      where.cardType = { equals: cardType as 'QR' };
     }
 
     if (isActive !== null && isActive !== undefined) {

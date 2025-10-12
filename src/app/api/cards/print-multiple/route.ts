@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
             jobTitle: true,
             roomNumber: true,
             checkInDate: true,
-            checkOutDate: true,
+            expiredDate: true,
             restaurant: {
               select: {
                 name: true,

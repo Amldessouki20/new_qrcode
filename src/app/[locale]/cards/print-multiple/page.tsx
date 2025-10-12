@@ -1,13 +1,12 @@
-import { Metadata } from 'next';
-import { cookies } from 'next/headers';
+import { Metadata } from "next";
+import { cookies } from "next/headers";
+import { verifyAccessToken } from "@/lib/jwt";
+import { hasPermission, PERMISSIONS } from "@/lib/permissions";
+import { redirect } from "next/navigation";
+import { prisma } from "@/lib/prisma";
+import { PrintMultipleCards } from "@/components/cards/PrintMultipleCards";
 
-import { verifyAccessToken } from '@/lib/jwt';
-import { hasPermission, PERMISSIONS } from '@/lib/permissions';
-import { redirect } from 'next/navigation';
-import { prisma } from '@/lib/prisma';
-import { PrintMultipleCards } from '@/components/cards/PrintMultipleCards';
-
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
@@ -25,17 +24,17 @@ export default async function PrintMultipleCardsPage({
 }) {
   const { locale } = await params;
   const { ids } = await searchParams;
-  
+
   const cookieStore = await cookies();
-  const token = cookieStore.get('accessToken')?.value;
-  
+  const token = cookieStore.get("accessToken")?.value;
+
   if (!token) {
-    redirect('/login');
+    redirect("/login");
   }
 
   const payload = await verifyAccessToken(token);
   if (!payload) {
-    redirect('/login');
+    redirect("/login");
   }
 
   const user = await prisma.user.findUnique({
@@ -49,21 +48,21 @@ export default async function PrintMultipleCardsPage({
   });
 
   if (!user || !user.isActive) {
-    redirect('/login');
+    redirect("/login");
   }
 
   // Check if user has permission to view cards
   const canViewCards = await hasPermission(user.id, PERMISSIONS.CARD_READ);
   if (!canViewCards) {
-    redirect('/dashboard');
+    redirect("/dashboard");
   }
 
   if (!ids) {
     redirect(`/${locale}/cards`);
   }
 
-  const cardIds = ids.split(',').filter(Boolean);
-  
+  const cardIds = ids.split(",").filter(Boolean);
+
   if (cardIds.length === 0) {
     redirect(`/${locale}/cards`);
   }
@@ -83,21 +82,22 @@ export default async function PrintMultipleCardsPage({
       validFrom: true,
       validTo: true,
       isActive: true,
-      usageCount: true,
-      // maxUsage: true,
       guest: {
         select: {
           id: true,
           firstName: true,
           lastName: true,
+          profileImagePath: true,
+          thumbnailImagePath: true,
           nationalId: true,
           passportNo: true,
           nationality: true,
           company: true,
+          religion: true,
           jobTitle: true,
           roomNumber: true,
           checkInDate: true,
-          checkOutDate: true,
+          expiredDate: true,
           restaurant: {
             select: {
               id: true,
@@ -124,23 +124,23 @@ export default async function PrintMultipleCardsPage({
 
   // Transform data to match Card interface
   const cards = cardsData
-    .filter(card => card.guest) // Only include cards with guests
-    .map(card => ({
+    .filter((card) => card.guest) // Only include cards with guests
+    .map((card) => ({
       id: card.id,
       cardData: card.cardData,
-      cardType: card.cardType as 'QR' | 'RFID',
+      cardType: card.cardType as "QR",
       validFrom: card.validFrom.toISOString(),
       validTo: card.validTo.toISOString(),
       isActive: card.isActive,
-      usageCount: card.usageCount ?? 0,
-      // maxUsage: card.maxUsage ?? 1,
       guest: {
         firstName: card.guest!.firstName,
         lastName: card.guest!.lastName,
-        nationalId: card.guest!.nationalId || '',
-        passportNo: card.guest!.passportNo || '',
-        nationality: card.guest!.nationality || '',
+        profileImagePath: card.guest!.profileImagePath || undefined,
+        nationalId: card.guest!.nationalId || "",
+        passportNo: card.guest!.passportNo || "",
+        nationality: card.guest!.nationality || "",
         company: card.guest!.company || undefined,
+        religion: card.guest!.religion || undefined,
         jobTitle: card.guest!.jobTitle || undefined,
         roomNumber: card.guest!.roomNumber || undefined,
         restaurant: {

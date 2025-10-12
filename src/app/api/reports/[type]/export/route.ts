@@ -4,10 +4,10 @@ import { prisma } from '@/lib/prisma';
 import { verifyAccessToken } from '@/lib/jwt';
 import { hasPermission, PERMISSIONS } from '@/lib/permissions';
 import * as XLSX from 'xlsx';
-import { Document, Packer, Paragraph, Table, TableCell, TableRow, WidthType, AlignmentType, HeadingLevel } from 'docx';
+import { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, AlignmentType, HeadingLevel } from 'docx';
+import puppeteer from 'puppeteer';
 
 export const dynamic = 'force-dynamic';
-
 
 interface ReportData {
   id?: string;
@@ -27,7 +27,7 @@ interface ReportData {
   nationality?: string | null;
   roomNumber?: string | null;
   checkInDate?: Date | string | null;
-  checkOutDate?: Date | string | null;
+  expiredDate?: Date | string | null;
   restaurant?: { name?: string };
   guest?: {
     firstName?: string;
@@ -35,18 +35,19 @@ interface ReportData {
     nationalId?: string | null;
     roomNumber?: string | null;
     checkInDate?: Date | string | null;
-    checkOutDate?: Date | string | null;
+    expiredDate?: Date | string | null;
     restaurant?: { name?: string };
   } | null;
   card?: {
     id?: string;
     guest?: { 
       firstName?: string; 
-      lastName?: string;
+      lastName?: string; 
       nationalId?: string | null;
       roomNumber?: string | null;
       checkInDate?: Date | string | null;
-      checkOutDate?: Date | string | null;
+      expiredDate?: Date | string | null;
+      restaurant?: { name?: string };
     } | null;
   } | null;
   cardType?: string;
@@ -130,7 +131,7 @@ export async function GET(
           }
         });
         reportTitle = 'Restaurants Report';
-        headers = ['ID', 'Name', 'Name (Arabic)', 'Location', 'Status', 'Guests Count', 'Meal Times', 'Created At'];
+        headers = ['ID', 'Name', 'Name(Arabic)', 'Location', 'Status', 'Guests Count', 'Meal Times', 'Created At'];
         break;
 
       case 'guests':
@@ -145,7 +146,7 @@ export async function GET(
             nationality: true,
             roomNumber: true,
             checkInDate: true,
-            checkOutDate: true,
+            expiredDate: true,
             isActive: true,
             createdAt: true,
             restaurant: {
@@ -156,7 +157,7 @@ export async function GET(
           }
         });
         reportTitle = 'Guests Report';
-        headers = ['ID', 'First Name', 'Last Name', 'National ID', 'Company', 'Job Title', 'Nationality', 'Room', 'Check In', 'Check Out', 'Restaurant', 'Status', 'Created At'];
+        headers = ['ID', 'First Name', 'Last Name', 'National ID', 'Company', 'Nationality', 'Room', 'Check In', 'Expired Date', 'Restaurant', 'Status', 'Created At'];
         break;
 
       case 'cards':
@@ -166,26 +167,26 @@ export async function GET(
             cardType: true,
             validFrom: true,
             validTo: true,
-            maxUsage: true,
             usageCount: true,
+            maxUsage: true,
             isActive: true,
             createdAt: true,
             guest: {
               select: {
                 firstName: true,
                 lastName: true,
-                nationalId: true
-              }
-            },
-            mealTime: {
-              select: {
-                name: true
+                nationalId: true,
+                restaurant: {
+                  select: {
+                    name: true
+                  }
+                }
               }
             }
           }
         });
         reportTitle = 'Cards Report';
-        headers = ['ID', 'Type', 'Guest Name', 'National ID', 'Meal Time', 'Valid From', 'Valid To', 'Usage', 'Max Usage', 'Status', 'Created At'];
+        headers = ['ID', 'Card Type', 'Guest Name', 'National ID', 'Restaurant', 'Valid From', 'Valid To', 'Usage', 'Max Usage', 'Status', 'Created At'];
         break;
 
       case 'scans':
@@ -202,16 +203,12 @@ export async function GET(
                 guest: {
                   select: {
                     firstName: true,
-                    lastName: true
-                  }
-                }
-              }
-            },
-            guest: {
-              select: {
-                restaurant: {
-                  select: {
-                    name: true
+                    lastName: true,
+                    restaurant: {
+                      select: {
+                        name: true
+                      }
+                    }
                   }
                 }
               }
@@ -244,21 +241,12 @@ export async function GET(
                     lastName: true,
                     roomNumber: true,
                     checkInDate: true,
-                    checkOutDate: true
-                  }
-                }
-              }
-            },
-            guest: {
-              select: {
-                firstName: true,
-                lastName: true,
-                roomNumber: true,
-                checkInDate: true,
-                checkOutDate: true,
-                restaurant: {
-                  select: {
-                    name: true
+                    expiredDate: true,
+                    restaurant: {
+                      select: {
+                        name: true
+                      }
+                    }
                   }
                 }
               }
@@ -270,7 +258,7 @@ export async function GET(
           take: 1000
         });
         reportTitle = 'Accommodation Scan Report';
-        headers = ['ID', 'Card ID', 'Guest Name', 'Room Number', 'Check In', 'Check Out', 'Restaurant', 'Station ID', 'Status', 'Error Message', 'Scan Time'];
+        headers = ['ID', 'Card ID', 'Guest Name', 'Room Number', 'Check In', 'Expired Date', 'Restaurant', 'Station ID', 'Status', 'Error Message', 'Scan Time'];
         break;
 
       case 'system':
@@ -302,7 +290,7 @@ export async function GET(
     // Format data based on export format
     switch (format) {
       case 'pdf':
-        return generatePDFReport(data, reportTitle, headers, type);
+        return await generatePDFReport(data, reportTitle, headers, type);
       case 'excel':
         return generateExcelReport(data, reportTitle, headers, type);
       case 'word':
@@ -312,58 +300,166 @@ export async function GET(
       default:
         return NextResponse.json({ error: 'Invalid format' }, { status: 400 });
     }
-
   } catch (error) {
     console.error('Report generation error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
-function generatePDFReport(data: ReportData[], title: string, headers: string[], type: string) {
-  // Simple HTML-to-PDF approach
-  const html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>${title}</title>
-      <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        h1 { color: #333; text-align: center; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; font-weight: bold; }
-        tr:nth-child(even) { background-color: #f9f9f9; }
-        .footer { margin-top: 20px; text-align: center; font-size: 12px; color: #666; }
-      </style>
-    </head>
-    <body>
-      <h1>${title}</h1>
-      <p>Generated on: ${new Date().toLocaleString()}</p>
-      <table>
-        <thead>
-          <tr>
-            ${headers.map(header => `<th>${header}</th>`).join('')}
-          </tr>
-        </thead>
-        <tbody>
-          ${data.map(row => 
-            `<tr>${formatRowData(row, type).map(cell => `<td>${String(cell || '-')}</td>`).join('')}</tr>`
-          ).join('')}
-        </tbody>
-      </table>
-      <div class="footer">
-        <p>AML Meals System - Report Generated: ${new Date().toISOString()}</p>
-      </div>
-    </body>
-    </html>
-  `;
+async function generatePDFReport(data: ReportData[], title: string, headers: string[], type: string) {
+  try {
+    // Enhanced HTML with better styling
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>${title}</title>
+        <style>
+          body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            color: #333;
+          }
+          h1 { 
+            color: #2c3e50; 
+            text-align: center; 
+            margin-bottom: 30px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+          }
+          table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin: 10px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          }
+          th, td { 
+            border: 1px solid #ddd; 
+            padding: 1px; 
+            text-align: left; 
+          }
+          th { 
+            background-color: #3498db; 
+            color: white;
+            font-weight: bold;
+          }
+          tr:nth-child(even) { 
+            background-color: #f8f9fa; 
+          }
+          tr:hover {
+            background-color: #e8f4fd;
+          }
+          .footer { 
+            margin-top: 30px; 
+            text-align: center; 
+            font-size: 12px; 
+            color: #666; 
+            border-top: 1px solid #ddd;
+            padding-top: 20px;
+          }
+        </style>
+      </head>
+      <body>
+        <h1>${title}</h1>
+        <p>Generated on: ${new Date().toLocaleString()}</p>
+        <table>
+          <thead>
+            <tr>
+              ${headers.map(header => `<th>${header}</th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>
+            ${data.map(row => 
+              `<tr>${formatRowData(row, type).map(cell => 
+                `<td>${String(cell || '-')}</td>`
+              ).join('')}</tr>`
+            ).join('')}
+          </tbody>
+        </table>
+        <div class="footer">
+          <p> Meals System - Report Generated: ${new Date().toISOString()}</p>
+        </div>
+      </body>
+      </html>
+    `;
 
-  return new NextResponse(html, {
-    headers: {
-      'Content-Type': 'text/html',
-      'Content-Disposition': `attachment; filename="${title.replace(/\s+/g, '_')}.html"`
-    }
-  });
+    // Launch puppeteer and generate PDF
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
+    
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: 'networkidle0' });
+    
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: {
+        top: '20mm',
+        right: '20mm',
+        bottom: '20mm',
+        left: '20mm'
+      }
+    });
+    
+    await browser.close();
+
+    return new NextResponse(pdfBuffer as BodyInit, {
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="${title.replace(/\s+/g, '_')}.pdf"`
+      }
+    });
+  } catch (error) {
+    console.error('PDF generation error:', error);
+    // Fallback to HTML if PDF generation fails
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>${title}</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; }
+          h1 { color: #333; text-align: center; }
+          table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+          th { background-color: #f2f2f2; font-weight: bold; }
+          tr:nth-child(even) { background-color: #f9f9f9; }
+          .footer { margin-top: 20px; text-align: center; font-size: 12px; color: #666; }
+        </style>
+      </head>
+      <body>
+        <h1>${title}</h1>
+        <p>Generated on: ${new Date().toLocaleString()}</p>
+        <table>
+          <thead>
+            <tr>
+              ${headers.map(header => `<th>${header}</th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>
+            ${data.map(row => 
+              `<tr>${formatRowData(row, type).map(cell => 
+                `<td>${String(cell || '-')}</td>`
+              ).join('')}</tr>`
+            ).join('')}
+          </tbody>
+        </table>
+        <div class="footer">
+          <p> Meals System - Report Generated: ${new Date().toISOString()}</p>
+        </div>
+      </body>
+      </html>
+    `;
+
+    return new NextResponse(html, {
+      headers: {
+        'Content-Type': 'text/html',
+        'Content-Disposition': `attachment; filename="${title.replace(/\s+/g, '_')}.html"`
+      }
+    });
+  }
 }
 
 function generateExcelReport(data: ReportData[], title: string, headers: string[], type: string) {
@@ -380,7 +476,7 @@ function generateExcelReport(data: ReportData[], title: string, headers: string[
   const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
   
   // Set column widths for better readability
-  const columnWidths = headers.map(() => ({ wch: 15 }));
+  const columnWidths = headers.map(() => ({ wch: 20 }));
   worksheet['!cols'] = columnWidths;
   
   // Style the header row
@@ -388,7 +484,6 @@ function generateExcelReport(data: ReportData[], title: string, headers: string[
   for (let col = headerRange.s.c; col <= headerRange.e.c; col++) {
     const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
     if (!worksheet[cellAddress]) continue;
-    
     worksheet[cellAddress].s = {
       font: { bold: true, color: { rgb: "FFFFFF" } },
       fill: { fgColor: { rgb: "366092" } },
@@ -399,13 +494,12 @@ function generateExcelReport(data: ReportData[], title: string, headers: string[
   // Add worksheet to workbook
   XLSX.utils.book_append_sheet(workbook, worksheet, title.substring(0, 31)); // Excel sheet name limit
   
-  // Generate Excel file buffer
+  // Generate Excel buffer
   const excelBuffer = XLSX.write(workbook, { 
     type: 'buffer', 
-    bookType: 'xlsx',
-    compression: true
+    bookType: 'xlsx' 
   });
-  
+
   return new NextResponse(excelBuffer, {
     headers: {
       'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -421,11 +515,7 @@ async function generateWordReport(data: ReportData[], title: string, headers: st
     new TableRow({
       children: headers.map(header => 
         new TableCell({
-          children: [new Paragraph({
-            text: header,
-            alignment: AlignmentType.CENTER,
-            heading: HeadingLevel.HEADING_6
-          })],
+          children: [new Paragraph({ text: header, alignment: AlignmentType.CENTER })],
           width: { size: 2000, type: WidthType.DXA }
         })
       )
@@ -435,10 +525,7 @@ async function generateWordReport(data: ReportData[], title: string, headers: st
       new TableRow({
         children: formatRowData(row, type).map(cell => 
           new TableCell({
-            children: [new Paragraph({
-              text: String(cell || '-'),
-              alignment: AlignmentType.LEFT
-            })],
+            children: [new Paragraph({ text: String(cell || '-') })],
             width: { size: 2000, type: WidthType.DXA }
           })
         )
@@ -446,28 +533,21 @@ async function generateWordReport(data: ReportData[], title: string, headers: st
     )
   ];
 
-  // Create the document
   const doc = new Document({
     sections: [{
-      properties: {},
       children: [
-        // Title
         new Paragraph({
           text: title,
           heading: HeadingLevel.HEADING_1,
           alignment: AlignmentType.CENTER
         }),
-        
-        // Generation date
         new Paragraph({
           text: `Generated on: ${new Date().toLocaleString()}`,
           alignment: AlignmentType.CENTER
         }),
-        
-        // Empty paragraph for spacing
+        // Add spacing
         new Paragraph({ text: "" }),
         
-        // Data table
         new Table({
           rows: tableRows,
           width: {
@@ -476,10 +556,9 @@ async function generateWordReport(data: ReportData[], title: string, headers: st
           }
         }),
         
-        // Footer
         new Paragraph({ text: "" }),
         new Paragraph({
-          text: `AML Meals System - Report Generated: ${new Date().toISOString()}`,
+          text: ` Meals System - Report Generated: ${new Date().toISOString()}`,
           alignment: AlignmentType.CENTER
         })
       ]
@@ -488,8 +567,8 @@ async function generateWordReport(data: ReportData[], title: string, headers: st
 
   // Generate Word document buffer
   const wordBuffer = await Packer.toBuffer(doc);
-  
-  return new NextResponse(new Uint8Array(wordBuffer), {
+
+  return new NextResponse(wordBuffer as BodyInit, {
     headers: {
       'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       'Content-Disposition': `attachment; filename="${title.replace(/\s+/g, '_')}.docx"`
@@ -498,30 +577,40 @@ async function generateWordReport(data: ReportData[], title: string, headers: st
 }
 
 function generateSVGReport(data: ReportData[], title: string, type: string) {
-  // Generate simple SVG chart for numeric data
+  const width = 800;
+  const height = 600;
+  const barWidth = 60;
+  const maxValue = Math.max(...data.map(row => getNumericValue(row, type)));
+  
   const svg = `
-    <svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
-      <rect width="100%" height="100%" fill="white"/>
-      <text x="400" y="30" text-anchor="middle" font-size="20" font-weight="bold">${title}</text>
-      <text x="400" y="50" text-anchor="middle" font-size="12">Generated: ${new Date().toLocaleDateString()}</text>
+    <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+      <rect width="100%" height="100%" fill="#f8f9fa"/>
       
-      <!-- Simple data visualization -->
+      <text x="${width/2}" y="30" text-anchor="middle" font-size="20" font-weight="bold" fill="#2c3e50">
+        ${title}
+      </text>
+      
       <g transform="translate(50, 80)">
         ${data.slice(0, 10).map((row, index) => {
-          const y = index * 40;
           const value = getNumericValue(row, type);
-          const barWidth = Math.max(10, (value / Math.max(...data.slice(0, 10).map(r => getNumericValue(r, type)))) * 300);
+          const barHeight = (value / maxValue) * 400;
+          const x = index * (barWidth + 20);
+          const y = 400 - barHeight;
           
           return `
-            <rect x="0" y="${y}" width="${barWidth}" height="30" fill="#3b82f6" opacity="0.7"/>
-            <text x="10" y="${y + 20}" font-size="12" fill="white">${getRowLabel(row, type)}</text>
-            <text x="${barWidth + 10}" y="${y + 20}" font-size="12">${value}</text>
+            <rect x="${x}" y="${y}" width="${barWidth}" height="${barHeight}" fill="#3498db" stroke="#2980b9"/>
+            <text x="${x + barWidth/2}" y="${y - 10}" text-anchor="middle" font-size="10" fill="#2c3e50">
+              ${getRowLabel(row, type)}
+            </text>
+            <text x="${x + barWidth/2}" y="${y + barHeight + 15}" text-anchor="middle" font-size="12">
+              ${value}
+            </text>
           `;
         }).join('')}
       </g>
       
-      <text x="400" y="580" text-anchor="middle" font-size="10" fill="#666">
-        AML Meals System - ${new Date().toISOString()}
+      <text x="50" y="550" font-size="10" fill="#666">
+         Meals System - ${new Date().toISOString()}
       </text>
     </svg>
   `;
@@ -553,8 +642,8 @@ function formatRowData(row: ReportData, type: string): string[] {
         String(row.nameAr || ''),
         String(row.location || ''),
         row.isActive ? 'Active' : 'Inactive',
-        String(row._count?.guests || 0),
-        '0', // mealTimes count placeholder
+        String(row._count?.guests || 0), // guests count placeholder
+        String(row._count?.mealTimes || 0), // mealTime count placeholder
         row.createdAt ? new Date(row.createdAt).toLocaleDateString() : ''
       ];
     
@@ -569,8 +658,8 @@ function formatRowData(row: ReportData, type: string): string[] {
         String(row.nationality || ''),
         String(row.roomNumber || ''),
         row.checkInDate ? new Date(row.checkInDate).toLocaleDateString() : '',
-        row.checkOutDate ? new Date(row.checkOutDate).toLocaleDateString() : '',
-        String(row.restaurant?.name || 'N/A'),
+        row.expiredDate ? new Date(row.expiredDate).toLocaleDateString() : '',
+        String(row.restaurant?.name || ''),
         row.isActive ? 'Active' : 'Inactive',
         row.createdAt ? new Date(row.createdAt).toLocaleDateString() : ''
       ];
@@ -581,7 +670,7 @@ function formatRowData(row: ReportData, type: string): string[] {
         String(row.cardType || ''),
         `${String(row.guest?.firstName || '')} ${String(row.guest?.lastName || '')}`.trim(),
         String(row.guest?.nationalId || ''),
-        'N/A', // mealTime name placeholder
+        String(row.guest?.restaurant?.name || ''),
         row.validFrom ? new Date(row.validFrom).toLocaleDateString() : '',
         row.validTo ? new Date(row.validTo).toLocaleDateString() : '',
         String(row.usageCount || 0),
@@ -589,28 +678,30 @@ function formatRowData(row: ReportData, type: string): string[] {
         row.isActive ? 'Active' : 'Inactive',
         row.createdAt ? new Date(row.createdAt).toLocaleDateString() : ''
       ];
-      case 'accommodation':
-        const guestData = row.card?.guest || row.guest;
-        return [
-          String(row.id || ''),
-          String(row.card?.id || ''),
-          guestData ? `${String(guestData.firstName || '')} ${String(guestData.lastName || '')}`.trim() : '',
-          String(guestData?.roomNumber || ''),
-          guestData?.checkInDate ? new Date(guestData.checkInDate).toLocaleDateString() : '',
-          guestData?.checkOutDate ? new Date(guestData.checkOutDate).toLocaleDateString() : '',
-          String(row.guest?.restaurant?.name || ''),
-          String(row.stationId || ''),
-          row.isSuccess ? 'Success' : 'Failed',
-          String(row.errorMessage || ''),
-          row.scanTime ? new Date(row.scanTime).toLocaleString() : ''
-        ];
+    
+    case 'accommodation':
+      const guestData = row.card?.guest || row.guest;
+      const restaurantName = row.card?.guest?.restaurant?.name || '';
+      return [
+        String(row.id || ''),
+        String(row.card?.id || ''),
+        guestData ? `${String(guestData.firstName || '')} ${String(guestData.lastName || '')}`.trim() : '',
+        String(guestData?.roomNumber || ''),
+        guestData?.checkInDate ? new Date(guestData.checkInDate).toLocaleDateString() : '',
+        guestData?.expiredDate ? new Date(guestData.expiredDate).toLocaleDateString() : '',
+        String(restaurantName || ''),
+        String(row.stationId || ''),
+        row.isSuccess ? 'Success' : 'Failed',
+        String(row.errorMessage || ''),
+        row.scanTime ? new Date(row.scanTime).toLocaleString() : ''
+      ];
     
     case 'scans':
       return [
         String(row.id || ''),
         String(row.card?.id || ''),
         row.card?.guest ? `${String(row.card.guest.firstName || '')} ${String(row.card.guest.lastName || '')}`.trim() : '',
-        String(row.guest?.restaurant?.name || ''),
+        String(row.card?.guest?.restaurant?.name || ''),
         String(row.stationId || ''),
         row.isSuccess ? 'Success' : 'Failed',
         String(row.errorMessage || ''),
@@ -618,17 +709,18 @@ function formatRowData(row: ReportData, type: string): string[] {
       ];
     
     case 'system':
-      return [String(row.metric || ''), String(row.value || '')];
+      return [
+        String(row.metric || ''),
+        String(row.value || '')
+      ];
     
     default:
-      return Object.values(row).map(String);
+      return Object.values(row).map(val => String(val || ''));
   }
 }
 
 function getNumericValue(row: ReportData, type: string): number {
   switch (type) {
-    case 'restaurants':
-      return row._count?.guests || 0;
     case 'cards':
       return row.usageCount || 0;
     case 'system':
@@ -643,7 +735,7 @@ function getRowLabel(row: ReportData, type: string): string {
     case 'restaurants':
       return String(row.name || 'Unknown');
     case 'cards':
-      return row.guest ? `${String(row.guest.firstName || '')} ${String(row.guest.lastName || '')}` : 'Unassigned';
+      return row.guest ? `${String(row.guest.firstName || '')} ${String(row.guest.lastName || '')}`.trim() : 'Unknown';
     case 'system':
       return String(row.metric || 'Unknown');
     default:

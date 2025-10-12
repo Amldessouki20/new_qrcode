@@ -15,6 +15,7 @@ interface PrintableCardProps {
   guest: {
     firstName: string;
     lastName: string;
+    profileImagePath?: string | null;
     company?: string | null;
     jobTitle?: string | null;
   };
@@ -225,6 +226,15 @@ const PrintableCard: React.FC<PrintableCardProps> = ({
         </div>
         
         <div className="guest-info">
+          {guest.profileImagePath && (
+            <Image
+              src={guest.profileImagePath}
+              alt={`${guest.firstName} ${guest.lastName}`}
+              width={40}
+              height={40}
+              style={{ borderRadius: '50%', objectFit: 'cover', border: '1px solid #ddd', marginBottom: 6 }}
+            />
+          )}
           <div className="guest-name">
             {guest.firstName} {guest.lastName}
           </div>

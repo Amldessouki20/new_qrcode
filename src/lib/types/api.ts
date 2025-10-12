@@ -46,9 +46,10 @@ export interface Guest extends BaseEntity {
   passportNo?: string | null;
   nationality?: string | null;
   company?: string | null;
+  religion?: string | null;
   jobTitle?: string | null;
   checkInDate?: Date | null;
-  checkOutDate?: Date | null;
+  expiredDate?: Date | null;
   roomNumber?: string | null;
   restaurantId: string;
   isActive: boolean;
@@ -63,7 +64,7 @@ export interface Restaurant extends BaseEntity {
   description?: string | null;
   location?: string | null;
   capacity: number;
-  restaurantType: "EASTERN" | "WESTERN" | "MIXED";
+  restaurantType: string;
   gateId?: string | null;
   isActive: boolean;
 }
@@ -243,7 +244,7 @@ export interface CreateGuestForm {
   company?: string;
   jobTitle?: string;
   checkInDate?: Date;
-  checkOutDate?: Date;
+  expiredDate?: Date;
   roomNumber?: string;
   restaurantId: string;
 }

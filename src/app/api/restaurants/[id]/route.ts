@@ -97,7 +97,7 @@ export async function GET(
             company: true,
             jobTitle: true,
             checkInDate: true,
-            checkOutDate: true,
+            expiredDate: true,
             roomNumber: true,
             isActive: true,
             createdAt: true,

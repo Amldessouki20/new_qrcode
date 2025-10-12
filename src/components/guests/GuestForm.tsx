@@ -10,6 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
+import { ImageUpload, ImageUploadError } from '@/components/ui/image-upload';
+import { GuestAvatar } from '@/components/ui/guest-avatar';
 
 
 interface Restaurant {
@@ -37,6 +39,7 @@ interface GuestFormProps {
     restaurantId?: string;
     restaurantType?: string;
     isActive: boolean;
+    profileImagePath?: string;
   } | undefined;
   isEdit?: boolean;
 }
@@ -60,10 +63,13 @@ export function GuestForm({ initialData, isEdit = false }: GuestFormProps) {
     isActive: initialData?.isActive ?? true,
     // Card information
     checkInDate: new Date().toISOString().split('T')[0],
-    checkOutDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 7 days from now
+    expiredDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 7 days from now
     maxMeals: 3, // Default: breakfast, lunch, dinner
     selectedMealTimes: [] as string[],
+    // Profile image
+    profileImage: null as string | null,
   });
+  const [imageError, setImageError] = useState<string | null>(null);
   const [createdGuest, setCreatedGuest] = useState<{
     guest: {
       id: string;
@@ -131,11 +137,11 @@ export function GuestForm({ initialData, isEdit = false }: GuestFormProps) {
       }
 
       // Validate dates
-      if (formData.checkInDate && formData.checkOutDate) {
+      if (formData.checkInDate && formData.expiredDate) {
         const checkIn = new Date(formData.checkInDate);
-        const checkOut = new Date(formData.checkOutDate);
-        if (checkOut <= checkIn) {
-          toast.error('Check-out date must be after check-in date');
+        const expired = new Date(formData.expiredDate);
+        if (expired <= checkIn) {
+          toast.error('Expired date must be after check-in date');
           return;
         }
       }
@@ -154,9 +160,10 @@ export function GuestForm({ initialData, isEdit = false }: GuestFormProps) {
         restaurantType: string;
         isActive: boolean;
         checkInDate?: string;
-        checkOutDate?: string;
+        expiredDate?: string;
         maxMeals?: number;
         selectedMealTimes?: string[];
+        profileImage?: string;
       } = {
         firstName: nameParts[0] || 'Guest',
         lastName: nameParts.slice(1).join(' ') || 'User',
@@ -170,7 +177,8 @@ export function GuestForm({ initialData, isEdit = false }: GuestFormProps) {
         restaurantType: formData.restaurantType,
         isActive: formData.isActive,
         ...(formData.checkInDate && { checkInDate: new Date(formData.checkInDate + 'T00:00:00.000Z').toISOString() }),
-        ...(formData.checkOutDate && { checkOutDate: new Date(formData.checkOutDate + 'T23:59:59.999Z').toISOString() }),
+        ...(formData.expiredDate && { expiredDate: new Date(formData.expiredDate + 'T23:59:59.999Z').toISOString() }),
+        ...(formData.profileImage && { profileImage: formData.profileImage }),
       };
 
       // Only include card-related fields when creating a new guest
@@ -215,8 +223,11 @@ export function GuestForm({ initialData, isEdit = false }: GuestFormProps) {
     }
   };
 
-  const handleInputChange = (field: string, value: string | boolean | number | string[]) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const handleInputChange = (field: string, value: string | boolean | number | string[] | null) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
   return (
@@ -343,12 +354,12 @@ export function GuestForm({ initialData, isEdit = false }: GuestFormProps) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="checkOutDate">{t('guests.checkOutDate')}</Label>
+                <Label htmlFor="expiredDate">{t('guests.expiredDate')}</Label>
                 <Input  className="h-8 text-sm px-2 max-w-xs"
-                  id="checkOutDate"
+                  id="expiredDate"
                   type="date"
-                  value={formData.checkOutDate}
-                  onChange={(e) => handleInputChange('checkOutDate', e.target.value)}
+                  value={formData.expiredDate}
+                  onChange={(e) => handleInputChange('expiredDate', e.target.value)}
                   min={formData.checkInDate}
                   required
                 />
@@ -400,6 +411,46 @@ export function GuestForm({ initialData, isEdit = false }: GuestFormProps) {
             )}
               </>
             )}
+          </div>
+
+          {/* Profile Image Upload */}
+          <div className="space-y-2">
+            <Label>{t('guests.profileImage')}</Label>
+            <div className="flex items-start gap-4">
+              {/* Current Image Preview */}
+              {(initialData?.profileImagePath || formData.profileImage) && (
+                <div className="flex flex-col items-center gap-2">
+                  <GuestAvatar
+                    src={formData.profileImage ? `data:image/jpeg;base64,${formData.profileImage}` : initialData?.profileImagePath}
+                    alt={formData.name}
+                    fallbackText={formData.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                    size="lg"
+                  />
+                  <span className="text-xs text-gray-500">{t('guests.currentImage')}</span>
+                </div>
+              )}
+              
+              {/* Image Upload Component */}
+              <div className="flex-1">
+                <ImageUpload
+                  value={formData.profileImage || undefined}
+                  onChange={(base64Image: string | null) => {
+                    handleInputChange('profileImage', base64Image);
+                    setImageError(null);
+                  }}
+                  onError={(error: string) => setImageError(error)}
+                  maxSize={2048 * 1024}
+                  acceptedTypes={['image/jpeg', 'image/png', 'image/webp']}
+                  className="h-32"
+                />
+                {imageError && (
+                  <ImageUploadError error={imageError} />
+                )}
+                <p className="text-xs text-gray-500 mt-1">
+                  {t('guests.imageUploadHint')}
+                </p>
+              </div>
+            </div>
           </div>
 
           <div className="flex items-center space-x2">

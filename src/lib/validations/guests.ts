@@ -2,26 +2,26 @@ import { z } from 'zod';
 
 // Guest validation schemas
 export const createGuestSchema = z.object({
-  firstName: z.string().min(1, 'First name is required').max(100, 'First name too long'),
-  lastName: z.string().min(1, 'Last name is required').max(100, 'Last name too long'),
-  nationalId: z.string().max(50, 'National ID too long').optional(),
-  passportNo: z.string().max(50, 'Passport number too long').optional(),
-  nationality: z.string().max(50, 'Nationality too long').optional(),
-  company: z.string().max(100, 'Company name too long').optional(),
-  jobTitle: z.string().max(100, 'Job title too long').optional(),
+  firstName: z.string().min(1, 'First name is required'),
+  lastName: z.string().min(1, 'Last name is required'),
+  nationalId: z.string().optional(),
+  passportNo: z.string().optional(),
+  nationality: z.string().optional(),
+  company: z.string().optional(),
+  religion: z.string().optional(),
+  jobTitle: z.string().optional(),
+  roomNumber: z.string().optional(),
+  restaurantId: z.string().min(1, 'Restaurant is required'),
   checkInDate: z.string().datetime().optional(),
-  checkOutDate: z.string().datetime().optional(),
-  roomNumber: z.string().max(20, 'Room number too long').optional(),
-  isActive: z.boolean().default(true),
-  restaurantId: z.string().min(1, 'Restaurant ID is required'),
+  expiredDate: z.string().datetime().optional(),
 }).refine((data) => {
-  if (data.checkInDate && data.checkOutDate) {
-    return new Date(data.checkInDate) < new Date(data.checkOutDate);
+  if (data.checkInDate && data.expiredDate) {
+    return new Date(data.checkInDate) < new Date(data.expiredDate);
   }
   return true;
 }, {
-  message: 'Check-out date must be after check-in date',
-  path: ['checkOutDate'],
+  message: "Check-out date must be after check-in date",
+  path: ['expiredDate'],
 });
 
 export const updateGuestSchema = z.object({
@@ -31,26 +31,27 @@ export const updateGuestSchema = z.object({
   passportNo: z.string().max(50).optional(),
   nationality: z.string().max(50).optional(),
   company: z.string().max(100).optional(),
+  religion: z.string().max(50).optional(),
   jobTitle: z.string().max(100).optional(),
   checkInDate: z.string().datetime().optional(),
-  checkOutDate: z.string().datetime().optional(),
+  expiredDate: z.string().datetime().optional(),
   roomNumber: z.string().max(20).optional(),
   isActive: z.boolean().optional(),
   restaurantId: z.string().optional(),
 }).refine((data) => {
-  if (data.checkInDate && data.checkOutDate) {
-    return new Date(data.checkInDate) < new Date(data.checkOutDate);
+  if (data.checkInDate && data.expiredDate) {
+    return new Date(data.checkInDate) < new Date(data.expiredDate);
   }
   return true;
 }, {
   message: 'Check-out date must be after check-in date',
-  path: ['checkOutDate'],
+  path: ['expiredDate'],
 });
 
 // Card validation schemas
 export const createCardSchema = z.object({
   guestId: z.string().min(1, 'Guest ID is required'),
-  cardType: z.enum(['QR', 'RFID']).default('QR'),
+  cardType: z.enum(['QR']).default('QR'),
   mealTimeId: z.string().min(1, 'Meal time is required'),
   validFrom: z.string().refine((date) => {
     const parsed = new Date(date);
@@ -65,7 +66,7 @@ export const createCardSchema = z.object({
 });
 
 export const updateCardSchema = z.object({
-  cardType: z.enum(['QR', 'RFID']).optional(),
+  cardType: z.enum(['QR']).optional(),
   mealTimeId: z.string().optional(),
   validTo: z.string().refine((date) => {
     const parsed = new Date(date);

@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { verifyAccessToken } from '@/lib/jwt';
 import { hasPermission, PERMISSIONS } from '@/lib/permissions';
+import { uploadImage, deleteImage } from '@/lib/cloudinary';
+import { validateImageFile } from '@/lib/image-utils-server';
 import { z } from 'zod';
 
 // export const dynamic = 'force-dynamic';
@@ -19,10 +21,13 @@ const updateGuestSchema = z.object({
   religion: z.string().optional(),
   jobTitle: z.string().optional(),
   checkInDate: z.string().optional(),
-  checkOutDate: z.string().optional(),
+  expiredDate: z.string().optional(),
   roomNumber: z.string().optional(),
   isActive: z.boolean().optional(),
   restaurantId: z.string().optional(),
+  // Profile image fields
+  profileImage: z.string().optional(), // Base64 image data
+  removeImage: z.boolean().optional(), // Flag to remove existing image
 });
 
 // GET /api/guests/[id] - Get guest by ID
@@ -66,7 +71,7 @@ export async function GET(
         religion: true,
         jobTitle: true,
         checkInDate: true,
-        checkOutDate: true,
+        expiredDate: true,
         roomNumber: true,
         isActive: true,
         createdAt: true,
@@ -161,6 +166,70 @@ export async function PUT(
     const body = await request.json();
     const validatedData = updateGuestSchema.parse(body);
 
+    // Handle profile image update
+    let imageUploadResult = null;
+    let shouldDeleteOldImage = false;
+
+    if (validatedData.removeImage) {
+      // User wants to remove the existing image
+      shouldDeleteOldImage = true;
+    } else if (validatedData.profileImage) {
+      // User wants to upload a new image
+      try {
+        // Convert base64 to file for validation
+        const base64Data = validatedData.profileImage.split(',')[1];
+        const mimeType = validatedData.profileImage.split(',')[0].split(':')[1].split(';')[0];
+        const buffer = Buffer.from(base64Data, 'base64');
+        
+        // Create a file-like object for validation
+        const imageFile = {
+          size: buffer.length,
+          type: mimeType,
+          name: `profile-${Date.now()}.${mimeType.split('/')[1]}`
+        };
+
+        // Validate image
+        const validation = await validateImageFile(imageFile as File);
+        if (!validation.isValid) {
+          return NextResponse.json(
+            { error: validation.error },
+            { status: 400 }
+          );
+        }
+
+        // Upload to Cloudinary
+        imageUploadResult = await uploadImage(validatedData.profileImage, {
+          folder: 'guest-profiles',
+          transformation: [
+            { width: 300, height: 300, crop: 'fill', gravity: 'face' },
+            { quality: 'auto', format: 'auto' }
+          ]
+        });
+
+        shouldDeleteOldImage = true; // Delete old image when uploading new one
+      } catch (error) {
+        console.error('Error processing profile image:', error);
+        return NextResponse.json(
+          { error: 'Failed to process profile image' },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Delete old image from Cloudinary if needed
+    if (shouldDeleteOldImage && existingGuest.profileImagePath) {
+      try {
+        // Extract public_id from Cloudinary URL
+        const urlParts = existingGuest.profileImagePath.split('/');
+        const publicIdWithExtension = urlParts[urlParts.length - 1];
+        const publicId = `guest-profiles/${publicIdWithExtension.split('.')[0]}`;
+        await deleteImage(publicId);
+      } catch (error) {
+        console.error('Error deleting old image:', error);
+        // Continue with update even if image deletion fails
+      }
+    }
+
     // Check if restaurant exists (if restaurantId is being updated)
     if (validatedData.restaurantId && validatedData.restaurantId !== existingGuest.restaurantId) {
       const restaurant = await prisma.restaurant.findUnique({
@@ -210,7 +279,7 @@ export async function PUT(
     }
 
     // Filter out fields that are not part of the guest model
-    const { restaurantId, checkInDate, checkOutDate, ...guestData } = validatedData;
+    const { restaurantId, checkInDate, expiredDate, ...guestData } = validatedData;
     
     // Prepare update data - filter out undefined values
     const filteredGuestData = Object.fromEntries(
@@ -220,11 +289,28 @@ export async function PUT(
     const updateData: Prisma.GuestUpdateInput = {
       ...filteredGuestData,
       ...(checkInDate && { checkInDate: new Date(checkInDate) }),
-      ...(checkOutDate && { checkOutDate: new Date(checkOutDate) }),
+      ...(expiredDate && { expiredDate: new Date(expiredDate) }),
       updater: {
         connect: { id: payload.userId }
       },
     };
+
+    // Handle image updates
+    if (imageUploadResult) {
+      // New image uploaded
+      updateData.profileImagePath = imageUploadResult.secure_url;
+      updateData.thumbnailImagePath = imageUploadResult.eager?.[0]?.secure_url || null;
+      updateData.imageUploadedAt = new Date();
+      updateData.imageSize = imageUploadResult.bytes;
+      updateData.imageMimeType = `image/${imageUploadResult.format}`;
+    } else if (shouldDeleteOldImage) {
+      // Remove image
+      updateData.profileImagePath = null;
+      updateData.thumbnailImagePath = null;
+      updateData.imageUploadedAt = null;
+      updateData.imageSize = null;
+      updateData.imageMimeType = null;
+    }
     
     // Handle restaurant relationship if restaurantId is provided
     if (restaurantId) {
@@ -248,11 +334,17 @@ export async function PUT(
         religion: true,
         jobTitle: true,
         checkInDate: true,
-        checkOutDate: true,
+        expiredDate: true,
         roomNumber: true,
         isActive: true,
         createdAt: true,
         updatedAt: true,
+        // Profile image fields
+        profileImagePath: true,
+        thumbnailImagePath: true,
+        imageUploadedAt: true,
+        imageSize: true,
+        imageMimeType: true,
         restaurant: {
           select: {
             id: true,

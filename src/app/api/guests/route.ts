@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { verifyAccessToken } from '@/lib/jwt';
 import { hasPermission, PERMISSIONS } from '@/lib/permissions';
 import { createCardDataString } from '@/lib/qr-generator';
+import { uploadImage } from '@/lib/cloudinary';
+import { validateImageFile } from '@/lib/image-utils-server';
 import { z } from 'zod';
 
 // export const dynamic = 'force-dynamic';
@@ -18,7 +20,7 @@ const createGuestSchema = z.object({
   company: z.string().max(100, 'Company name too long').optional(),
   religion: z.string().max(100, 'Religion too long').optional(),
   jobTitle: z.string().max(100, 'Job title too long').optional(),
-  invalidDate: z.string().datetime().optional(),
+  checkInDate: z.string().datetime().optional(),
   expiredDate: z.string().datetime().optional(),
   roomNumber: z.string().max(20, 'Room number too long').optional(),
   isActive: z.boolean().default(true),
@@ -26,6 +28,16 @@ const createGuestSchema = z.object({
   // Card information
   maxMeals: z.number().min(1).max(10).default(3),
   selectedMealTimes: z.array(z.string()).optional(),
+  // Profile image fields
+  profileImage: z.string().optional(), // Base64 image data
+}).refine((data) => {
+  if (data.checkInDate && data.expiredDate) {
+    return new Date(data.checkInDate) < new Date(data.expiredDate);
+  }
+  return true;
+}, {
+  message: 'Expired date must be after check-in date',
+  path: ['expiredDate'],
 });
 
 // GET /api/guests - List guests with pagination and filtering
@@ -158,7 +170,7 @@ export async function GET(request: NextRequest) {
         religion: true,
         jobTitle: true,
         checkInDate: true,
-        checkOutDate: true,
+        expiredDate: true,
         roomNumber: true,
         isActive: true,
         createdAt: true,
@@ -246,6 +258,62 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = createGuestSchema.parse(body);
 
+    // Validate profile image if provided
+    let imageUploadResult = null;
+    if (validatedData.profileImage) {
+      try {
+        // Support both data URLs ("data:mime;base64,....") and raw base64 strings
+        const profileImage = validatedData.profileImage;
+        let base64Data: string;
+        let mimeType: string;
+
+        if (profileImage.includes(',')) {
+          const [header, data] = profileImage.split(',');
+          base64Data = data;
+          const match = header.match(/^data:(.*?);base64$/);
+          mimeType = match ? match[1] : 'image/jpeg';
+        } else {
+          // Raw base64 payload without MIME prefix; default to JPEG
+          base64Data = profileImage;
+          mimeType = 'image/jpeg';
+        }
+
+        const buffer = Buffer.from(base64Data, 'base64');
+        
+        // Create a file-like object for validation
+        // const imageFile = {
+        //   size: buffer.length,
+        //   type: mimeType,
+        //   name: `profile-${Date.now()}.${mimeType.split('/')[1]}`
+        // };
+
+        // Validate image using the actual image Buffer on server
+        const validation = await validateImageFile(buffer);
+        if (!validation.isValid) {
+          return NextResponse.json(
+            { error: validation.error },
+            { status: 400 }
+          );
+        }
+
+        // Upload to Cloudinary
+        imageUploadResult = await uploadImage(profileImage.includes(',') ? profileImage : `data:${mimeType};base64,${base64Data}`, {
+          folder: 'guest-profiles',
+          transformation: [
+            { width: 300, height: 300, crop: 'fill', gravity: 'face' },
+            { quality: 'auto:good' },
+            { fetch_format: 'auto' }
+          ]
+        });
+      } catch (error) {
+        console.error('Error processing profile image:', error);
+        return NextResponse.json(
+          { error: 'Failed to process profile image' },
+          { status: 400 }
+        );
+      }
+    }
+
     // Check if restaurant exists - optimized query
     const restaurant = await prisma.restaurant.findUnique({
       where: { id: validatedData.restaurantId },
@@ -328,8 +396,14 @@ export async function POST(request: NextRequest) {
         religion: validatedData.religion || null,
         jobTitle: validatedData.jobTitle || null,
         roomNumber: validatedData.roomNumber || null,
-        checkInDate: validatedData.invalidDate ? new Date(validatedData.invalidDate) : null,
-        checkOutDate: validatedData.expiredDate ? new Date(validatedData.expiredDate) : null,
+        checkInDate: validatedData.checkInDate ? new Date(validatedData.checkInDate) : null,
+        expiredDate: validatedData.expiredDate ? new Date(validatedData.expiredDate) : null,
+        // Profile image fields
+        profileImagePath: imageUploadResult?.secure_url || null,
+        thumbnailImagePath: imageUploadResult?.eager?.[0]?.secure_url || null,
+        imageUploadedAt: imageUploadResult ? new Date() : null,
+        imageSize: imageUploadResult?.bytes || null,
+        imageMimeType: imageUploadResult?.format ? `image/${imageUploadResult.format}` : null,
         restaurant: {
           connect: { id: validatedData.restaurantId }
         },
@@ -344,7 +418,7 @@ export async function POST(request: NextRequest) {
 
       // Create card for the guest
       const cardNumber = generateCardNumber();
-      const validFrom = validatedData.invalidDate ? new Date(validatedData.invalidDate) : new Date();
+      const validFrom = validatedData.checkInDate ? new Date(validatedData.checkInDate) : new Date();
       const validTo = validatedData.expiredDate ? new Date(validatedData.expiredDate) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
       
       // Prepare enhanced card data with full guest information for QR code
@@ -433,11 +507,17 @@ export async function POST(request: NextRequest) {
           religion: true,
           jobTitle: true,
           checkInDate: true,
-          checkOutDate: true,
+          expiredDate: true,
           roomNumber: true,
           isActive: true,
           createdAt: true,
           updatedAt: true,
+          // Profile image fields
+          profileImagePath: true,
+          thumbnailImagePath: true,
+          imageUploadedAt: true,
+          imageSize: true,
+          imageMimeType: true,
           restaurant: {
             select: {
               id: true,

@@ -96,7 +96,7 @@ const GuestManagement: React.FC<GuestManagementProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
@@ -250,6 +250,7 @@ const GuestManagement: React.FC<GuestManagementProps> = ({
                     nationality: selectedGuest.nationality || "",
                     room: selectedGuest.room || "",
                     company: selectedGuest.company || "",
+                    
                     restaurantId: selectedGuest.restaurantId || "",
                     restaurantType: "",
                     isActive: selectedGuest.isActive,

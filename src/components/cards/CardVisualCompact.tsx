@@ -3,6 +3,7 @@
 import { QRCodeSVG } from "qrcode.react";
 import { Card, CardContent } from "@/components/ui/card";
 import { User, Clock } from "lucide-react";
+import Image from "next/image";
 import { format } from "date-fns";
 import { parseCardDataString } from "@/lib/qr-generator";
 
@@ -17,10 +18,12 @@ interface CardVisualCompactProps {
     guest: {
       firstName: string;
       lastName: string;
+      profileImagePath?: string;
       nationalId?: string;
       passportNo?: string;
       nationality?: string;
       company?: string;
+      religion?: string;
       jobTitle?: string;
       roomNumber?: string;
       restaurant: {
@@ -35,8 +38,8 @@ interface CardVisualCompactProps {
       startTime: string;
       endTime: string;
     };
-    // maxUsage?: number;
-    // usageCount?: number;
+     maxUsage?: number;// i change here///
+     usageCount?: number;
   };
   locale?: string;
 }
@@ -90,7 +93,17 @@ export function CardVisualCompact({
         <div className="flex flex-col gap-3 justify-center items-center">
           <div className="bg-white/90 rounded-lg p-3 space-y-2 w-full">
             <div className="flex items-center gap-2 mb-2">
-              <User className="h-4 w-4 text-blue-600 flex-shrink-0" />
+              {card.guest.profileImagePath ? (
+                <Image
+                  src={card.guest.profileImagePath}
+                  alt={guestName}
+                  width={36}
+                  height={36}
+                  className="h-9 w-9 rounded-full object-cover border border-blue-200"
+                />
+              ) : (
+                <User className="h-4 w-4 text-blue-600 flex-shrink-0" />
+              )}
               <p className="font-bold text-sm text-gray-800 truncate flex-1">
                 {guestName}
               </p>
@@ -124,6 +137,16 @@ export function CardVisualCompact({
                   </span>
                   <span className="text-gray-700 truncate">
                     {card.guest.company}
+                  </span>
+                </div>
+              )}
+              {card.guest.religion && (
+                <div className="flex justify-between">
+                  <span className="text-gray-500 font-medium">
+                    {isArabic ? "الديانة:" : "Religion:"}
+                  </span>
+                  <span className="text-gray-700 truncate">
+                    {card.guest.religion}
                   </span>
                 </div>
               )}
@@ -204,7 +227,8 @@ export function CardVisualCompact({
                   {format(new Date(card.validTo), "dd/MM/yy")}
                 </span>
               </div>
-              {(card.maxUsage || card.usageCount !== undefined) && (
+           {/* change */}
+               {(card.maxUsage || card.usageCount !== undefined) && (
                 <div className="flex justify-between items-center">
                   <span className="text-xs font-medium text-gray-600">
                     {isArabic ? "الاستخدام:" : "Usage:"}
@@ -214,16 +238,16 @@ export function CardVisualCompact({
                     {card.maxUsage ? `/${card.maxUsage}` : ""}
                   </span>
                 </div>
-              )}
+              )} 
             </div>
           </div>
 
           {/* QR Code Section */}
           <div className="flex justify-center py-3">
-            <div className="text-center bg-white rounded-lg p-3 shadow-sm">
+            <div className="text-center bg-white rounded-lg p-4 shadow-sm">
               <QRCodeSVG
                 value={card.cardData}
-                size={140}
+                size={170}
                 level="H"
                 includeMargin={true}
                 marginSize={4}

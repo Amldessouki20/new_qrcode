@@ -94,9 +94,10 @@ export default async function GuestsPage({
         nationality: true,
         roomNumber: true,
         company: true,
+        religion: true,
         jobTitle: true,
         checkInDate: true,
-        checkOutDate: true,
+        expiredDate: true,
         restaurant: {
           select: {
             id: true,

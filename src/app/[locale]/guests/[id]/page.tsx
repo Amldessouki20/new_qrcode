@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Edit, CreditCard } from 'lucide-react';
 import Link from 'next/link';
 import { DeleteGuestButton } from '@/components/guests/DeleteGuestButton';
+import { GuestAvatar } from '@/components/ui/guest-avatar';
 
 export const dynamic = 'force-dynamic';
 
@@ -131,10 +132,20 @@ export default async function GuestViewPage({
               <CardTitle>{t('personalInformation')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">{t('name')}</label>
-                <p className="text-lg">{`${guest.firstName} ${guest.lastName}`}</p>
+              {/* Profile Image */}
+              <div className="flex items-center gap-4 mb-6">
+                <GuestAvatar
+                  src={guest.profileImagePath}
+                  alt={`${guest.firstName} ${guest.lastName}`}
+                  fallbackText={`${guest.firstName.charAt(0)}${guest.lastName.charAt(0)}`}
+                  size="xl"
+                />
+                <div>
+                  <h3 className="text-xl font-semibold">{`${guest.firstName} ${guest.lastName}`}</h3>
+                  <p className="text-muted-foreground">{guest.jobTitle || t('guest')}</p>
+                </div>
               </div>
+              
               <div>
                 <label className="text-sm font-medium text-muted-foreground">{t('identification')}</label>
                 <p className="text-lg">{guest.nationalId || guest.passportNo || '-'}</p>

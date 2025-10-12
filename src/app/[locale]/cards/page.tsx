@@ -1,6 +1,5 @@
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
-
 import { verifyAccessToken } from '@/lib/jwt';
 import { prisma } from '@/lib/prisma';
 import { hasPermission, PERMISSIONS } from '@/lib/permissions';
@@ -111,14 +110,17 @@ export default async function CardsPage({
               id: true,
               firstName: true,
               lastName: true,
+              profileImagePath: true,
+              thumbnailImagePath: true,
               nationalId: true,
               passportNo: true,
               nationality: true,
               company: true,
+              religion: true,
               jobTitle: true,
               roomNumber: true,
               checkInDate: true,
-              checkOutDate: true,
+              expiredDate: true,
               restaurant: {
                 select: {
                   name: true,
@@ -300,15 +302,17 @@ export default async function CardsPage({
                                   validFrom: card.validFrom.toISOString(),
                                   validTo: card.validTo.toISOString(),
                                   isActive: card.isActive,
-                                  maxUsage: card.maxUsage,
-                                  usageCount: card.usageCount,
+                                  // maxUsage: card.maxUsage,
+                                  // usageCount: card.usageCount,
                                   guest: {
                                     firstName: card.guest?.firstName || '',
                                     lastName: card.guest?.lastName || '',
+                                    ...(card.guest?.profileImagePath && { profileImagePath: card.guest.profileImagePath }),
                                     nationalId: card.guest?.nationalId || '',
                                     passportNo: card.guest?.passportNo || '',
                                     nationality: card.guest?.nationality || '',
                                     company: card.guest?.company || '',
+                                    religion: card.guest?.religion || '',
                                     jobTitle: card.guest?.jobTitle || '',
                                     roomNumber: card.guest?.roomNumber || '',
                                     restaurant: {

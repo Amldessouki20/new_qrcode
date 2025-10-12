@@ -53,10 +53,11 @@ interface ScanRecord {
 
 interface AccommodationScanTableProps {
   locale: string;
+   refreshKey?: number;
 }
 
 export default function AccommodationScanTable({
-  locale,
+  locale, refreshKey
 }: AccommodationScanTableProps) {
   const t = useTranslations();
   const [scanRecords, setScanRecords] = useState<ScanRecord[]>([]);
@@ -65,6 +66,8 @@ export default function AccommodationScanTable({
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [searchInput, setSearchInput] = useState("");
+
   const recordsPerPage = 10;
 
   const isArabic = locale === "ar";
@@ -94,11 +97,29 @@ export default function AccommodationScanTable({
     } finally {
       setLoading(false);
     }
-  }, [currentPage, searchTerm, statusFilter]);
+  }, [currentPage, statusFilter, searchTerm]);
+
+useEffect(() => {
+  const delayDebounce = setTimeout(() => {
+    setSearchTerm(searchInput);
+    setCurrentPage(1);
+  }, 500);
+
+  return () => clearTimeout(delayDebounce);
+}, [searchInput]);
+
+
 
   useEffect(() => {
     fetchScanRecords();
   }, [fetchScanRecords]);
+   //  Refresh when refreshKey changes
+  useEffect(() => {
+    if (refreshKey !== undefined) {
+      fetchScanRecords();
+    }
+  }, [refreshKey, fetchScanRecords]);
+
 
   // Get status badge
   const getStatusBadge = (status: string) => {
@@ -141,10 +162,10 @@ export default function AccommodationScanTable({
   };
 
   // Handle search
-  const handleSearch = (value: string) => {
-    setSearchTerm(value);
-    setCurrentPage(1);
-  };
+  // const handleSearch = (value: string) => {
+  //   setSearchTerm(value);
+  //   setCurrentPage(1);
+  // };
 
   // Handle status filter
   const handleStatusFilter = (value: string) => {
@@ -162,12 +183,13 @@ export default function AccommodationScanTable({
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div className="flex flex-col sm:flex-row gap-2 flex-1">
           <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none z-10" />
             <Input
               placeholder={t("search.placeholder")}
-              value={searchTerm}
-              onChange={(e) => handleSearch(e.target.value)}
-              className="pl-10"
+              value={searchInput}
+              type="text"
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="pl-10 "
             />
           </div>
           <Select value={statusFilter} onValueChange={handleStatusFilter}>
@@ -198,10 +220,11 @@ export default function AccommodationScanTable({
 
       {/* Table */}
       <div className="border rounded-lg overflow-hidden">
-        <Table>
+        <Table >
           <TableHeader>
-            <TableRow>
+            <TableRow  className="text-sm">
               <TableHead>{t("table.guestName")}</TableHead>
+              <TableHead>{t("table.company")}</TableHead>
               <TableHead>{t("table.roomNumber")}</TableHead>
               <TableHead>{t("table.restaurant")}</TableHead>
               <TableHead>{t("table.scanTime")}</TableHead>
@@ -214,8 +237,8 @@ export default function AccommodationScanTable({
             {scanRecords.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={7}
-                  className="text-center py-8 text-muted-foreground"
+                  colSpan={8}
+                  className="text-center py-4 text-muted-foreground"
                 >
                   {t("table.noData")}
                 </TableCell>
@@ -229,12 +252,13 @@ export default function AccommodationScanTable({
                         ? record.guestNameAr || record.guestName
                         : record.guestName}
                     </div>
-                    {record.company && (
+                    {/* {record.company && (
                       <div className="text-sm text-muted-foreground">
                         {record.company}
                       </div>
-                    )}
+                    )} */}
                   </TableCell>
+                  <TableCell>{record.company || "-"}</TableCell>
                   <TableCell>{record.roomNumber || "-"}</TableCell>
                   <TableCell>
                     {isArabic
@@ -254,7 +278,7 @@ export default function AccommodationScanTable({
                       </div>
                       {record.errorCode && (
                         <div className="text-xs text-muted-foreground mt-1">
-                          {t("errorCode")}: {record.errorCode}
+                          {t("record.errorCode")}: {record.errorCode}
                         </div>
                       )}
                     </div>

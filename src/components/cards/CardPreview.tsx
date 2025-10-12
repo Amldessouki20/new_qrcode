@@ -1,6 +1,7 @@
 'use client';
 
 import { generateQRCodeSVG } from '@/lib/qr-generator';
+import Image from 'next/image';
 
 import { useEffect, useState } from 'react';
 
@@ -17,6 +18,7 @@ interface CardPreviewProps {
     guest?: {
       firstName: string;
       lastName: string;
+      profileImagePath?: string;
       nationalId: string;
       company?: string;
       religion?: string;
@@ -97,6 +99,13 @@ export function CardPreview({ card, size = 'small' }: CardPreviewProps) {
           {/* Left Side - Guest Info */}
           <div className="flex-1 pr-3">
             {/* Guest Name */}
+            {card.guest?.profileImagePath && (
+              <Image
+                src={card.guest.profileImagePath}
+                alt={`${card.guest.firstName} ${card.guest.lastName}`}
+                className="w-8 h-8 rounded-full object-cover border border-white/40 mb-1"
+              />
+            )}
             <div className={`${currentSize.text} font-semibold text-white mb-1`}>
               {card.guest ? `${card.guest.firstName} ${card.guest.lastName}` : 'Unassigned Guest'}
             </div>

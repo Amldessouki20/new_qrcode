@@ -90,7 +90,7 @@ export default async function CardDetailsPage({
           company: true,
           jobTitle: true,
           checkInDate: true,
-          checkOutDate: true,
+          expiredDate: true,
           restaurant: {
             select: {
               id: true,
@@ -325,14 +325,14 @@ export default async function CardDetailsPage({
                   </div>
                 )}
                 
-                {card.guest.checkOutDate && (
+                {card.guest.expiredDate && (
                   <div>
                     <label className="text-sm font-medium text-gray-500">
-                      {t('cards.checkOut')}
+                      {t('cards.expiredDate')}
                     </label>
                     <p className="flex items-center gap-2">
                       <Calendar className="h-4 w-4" />
-                      {format(new Date(card.guest.checkOutDate), 'PPP')}
+                      {format(new Date(card.guest.expiredDate), 'PPP')}
                     </p>
                   </div>
                 )}

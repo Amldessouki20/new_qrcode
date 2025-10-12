@@ -60,8 +60,20 @@
     "auto": "تلقائي",
     "pageNotFound": "الصفحة غير موجودة",
     "pageNotFoundDescription": "عذراً، لا يمكن العثور على الصفحة التي تبحث عنها.",
-    "goHome": "العودة للرئيسية"
+    "goHome": "العودة للرئيسية",
+      "pagination":{
+    "currentPage":"الصفحة الحالية",
+    "totalPages":"إجمالي الصفحات",
+    "itemsPerPage":"عدد العناصر في الصفحة",
+    "first":"الأول",
+    "last":"الأخير",
+    "next":"التالي",
+    "previous":"السابق",
+    "showing":"عرض"
+
+  }
   },
+
   "auth": {
     "login": "تسجيل الدخول",
     "register": "التسجيل",
@@ -292,6 +304,8 @@
     "activeStatusDescription": "تحديد ما إذا كان المطعم نشطاً أم لا"
   },
   "guests": {
+    "imageUploadHint":"تحميل صورة",
+    "currentImage":"صورة الحالي",
     "religion":"الديانه",
     "religionDescription":"الديانه",
     "deleteConfirmation":"هل أنت متأكد من حذف الضيف؟",
@@ -307,7 +321,7 @@
     "selectRestaurant": "اختر المطعم",
     "cardInformation": "معلومات البطاقة",
     "checkInDate": "تاريخ تسجيل الوصول",
-    "checkOutDate": "تاريخ تسجيل المغادرة",
+    "expiredDate": "تاريخ انتهاء الصلاحية",
     "maxMealsPerDay": "الحد الأقصى للوجبات يومياً",
     "isActive": "نشط",
     "create": "إنشاء",
@@ -380,7 +394,22 @@
     "identification": "الهوية",
     "passportNumber": "رقم جواز السفر",
     "specialRequests": "الطلبات الخاصة",
-    "preferences": "التفضيلات"
+    "preferences": "التفضيلات",
+    "profileImage": "الصورة الشخصية",
+    "uploadImage": "رفع صورة",
+    "changeImage": "تغيير الصورة",
+    "removeImage": "إزالة الصورة",
+    "imageUploadDescription": "رفع صورة شخصية للضيف",
+    "imageUploadError": "خطأ في رفع الصورة",
+    "imageUploadSuccess": "تم رفع الصورة بنجاح",
+    "imageDeleteSuccess": "تم حذف الصورة بنجاح",
+    "dragDropImage": "اسحب وأفلت صورة هنا، أو انقر للاختيار",
+    "imageRequirements": "JPG أو PNG أو WebP. الحد الأقصى 5 ميجابايت",
+    "imageProcessing": "معالجة الصورة...",
+    "imageUploading": "رفع الصورة...",
+    "imageTooLarge": "الصورة كبيرة جداً. الحد الأقصى 5 ميجابايت",
+    "invalidImageType": "نوع صورة غير صالح. يرجى استخدام JPG أو PNG أو WebP",
+    "imageCompressionFailed": "فشل في ضغط الصورة"
   },
   "cards": {
     "addNewDescription": "وصف إضافة جديد",
@@ -1156,6 +1185,7 @@
     "scanResults": {
       "title": "نتائج المسح",
       "description": "عرض وإدارة نتائج مسح البطاقات"
+      
     },
     "scanTable": {
       "title": "جدول نتائج المسح",
@@ -1202,10 +1232,14 @@
       "systemError": "خطأ في النظام"
     }
   },
+  "record":{
+    "errorCode":"رمز الخطأ"
+  },
 
   "search": {
-    "placeholder": "البحث...",
+    "placeholder": "البحث بالاسم أو الشركة أو الغرفة أو المطعم أو الرسالة",
     "refresh": "تحديث",
+    "errorCode":"رمز الخطأ",
     "results": "نتائج البحث...",
     "noResults": "لا توجد نتائج",
     "searching": "جاري البحث...",
@@ -1260,6 +1294,7 @@
     "message": "الرسالة",
     "usage": "الاستخدام",
     "id": "المعرف",
+    "company": " الشركة",
     "name": "الاسم",
     "type": "النوع",
     "status": "الحالة",

@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
     // Build where clause
     const whereClause: Prisma.ScanLogWhereInput = {};
 
-    // Search filter
+    // Search filter - Enhanced to search across all visible fields
     if (search) {
       whereClause.OR = [
         {
@@ -80,8 +80,23 @@ export async function GET(request: NextRequest) {
         },
         {
           card: {
+            guest: {
+              restaurant: {
+                OR: [
+                  { name: { contains: search, mode: 'insensitive' } },
+                  { nameAr: { contains: search, mode: 'insensitive' } }
+                ]
+              }
+            }
+          }
+        },
+        {
+          card: {
             cardData: { contains: search, mode: 'insensitive' }
           }
+        },
+        {
+          errorMessage: { contains: search, mode: 'insensitive' }
         }
       ];
     }
