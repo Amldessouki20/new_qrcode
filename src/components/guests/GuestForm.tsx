@@ -441,7 +441,7 @@ export function GuestForm({ initialData, isEdit = false }: GuestFormProps) {
                   onError={(error: string) => setImageError(error)}
                   maxSize={2048 * 1024}
                   acceptedTypes={['image/jpeg', 'image/png', 'image/webp']}
-                  className="h-32"
+                  className="h-20"
                 />
                 {imageError && (
                   <ImageUploadError error={imageError} />
@@ -464,7 +464,7 @@ export function GuestForm({ initialData, isEdit = false }: GuestFormProps) {
             <Label htmlFor="isActive">{t('guests.isActive')}</Label>
           </div>
 
-          <div className="flex gap-2 flex-col">
+          <div className="flex gap-2 ">
             <Button
               type="button"
               variant="outline"
