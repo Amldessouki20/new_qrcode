@@ -464,7 +464,7 @@ export function GuestForm({ initialData, isEdit = false }: GuestFormProps) {
             <Label htmlFor="isActive">{t('guests.isActive')}</Label>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-col">
             <Button
               type="button"
               variant="outline"
