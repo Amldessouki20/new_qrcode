@@ -89,6 +89,8 @@ export default async function GuestsPage({
         id: true,
         firstName: true,
         lastName: true,
+        profileImagePath: true,
+        thumbnailImagePath: true,
         nationalId: true,
         passportNo: true,
         nationality: true,

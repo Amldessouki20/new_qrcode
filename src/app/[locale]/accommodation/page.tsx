@@ -62,13 +62,16 @@ export default async function AccommodationPage({ params }: AccommodationPagePro
   const user = await getUser();
 
   if (!user) {
-    redirect('/login');
+    redirect(`/${locale}/login`);
   }
 
   // Check if user has permission to view accommodation scans
-  const canViewScans = await hasPermission(user.id, PERMISSIONS.CARD_READ);
+  const isAdminOrSuperOrUser = user.role === 'ADMIN' || user.role === 'SUPER_ADMIN'|| user.role === 'USER';
+  const canViewScans = isAdminOrSuperOrUser
+    ? true
+    : await hasPermission(user.id, PERMISSIONS.ACCOMMODATION_READ);
   if (!canViewScans) {
-    redirect('/dashboard');
+    redirect(`/${locale}/dashboard`);
   }
 
   return (

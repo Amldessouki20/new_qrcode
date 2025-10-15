@@ -16,6 +16,9 @@
 # next.js
 /.next/
 /out/
+ 
+# local uploads (do not commit user files)
+public/uploads/guests/
 
 # production
 /build

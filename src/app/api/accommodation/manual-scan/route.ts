@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import type { Prisma } from '@prisma/client';
 import { verifyAccessToken } from '@/lib/jwt';
 import { hasPermission, PERMISSIONS } from '@/lib/permissions';
 import { z } from 'zod';
@@ -43,8 +44,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Parse and validate request body
-    const body = await request.json();
-    const { cardData, stationId, scanType } = manualScanSchema.parse(body);
+  const body = await request.json();
+  const { cardData, stationId, scanType } = manualScanSchema.parse(body);
 
     // Parse QR code data to extract card information
     let cardNumber = cardData;
@@ -63,7 +64,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Find the card
+    // Find the card (include meal time for time-window validation)
     const card = await prisma.card.findFirst({
       where: { 
         OR: [
@@ -76,7 +77,8 @@ export async function POST(request: NextRequest) {
           include: {
             restaurant: true
           }
-        }
+        },
+        mealTime: true
       }
     });
 
@@ -89,6 +91,8 @@ export async function POST(request: NextRequest) {
       guest: null as Guest | null,
       restaurant: null as Restaurant | null
     };
+    // Track matched meal time ID for logging later
+    let matchedMealTimeId: string | null = null;
 
     if (!card) {
       scanResult = {
@@ -140,7 +144,151 @@ export async function POST(request: NextRequest) {
         guest: card.guest,
         restaurant: card.guest?.restaurant
       };
-    } else if (card.maxUsage && card.usageCount >= card.maxUsage) {
+    } else if (card.mealTime || card.guest?.restaurantId) {
+      // Determine the actual meal matching current scan time from all restaurant meal windows
+      const now = new Date();
+
+      const restaurantMealTimes = await prisma.mealTime.findMany({
+        where: {
+          restaurantId: card.guest!.restaurantId,
+          isActive: true
+        }
+      });
+
+      const parseToMinutes = (t: string) => {
+        const [h, m] = t.split(":").map((v) => parseInt(v, 10));
+        return h * 60 + (isNaN(m) ? 0 : m);
+      };
+
+      const nowMinutes = now.getHours() * 60 + now.getMinutes();
+      const matched = restaurantMealTimes.find(mt => {
+        const start = parseToMinutes(mt.startTime);
+        const end = parseToMinutes(mt.endTime);
+        if (end >= start) {
+          return nowMinutes >= start && nowMinutes <= end;
+        }
+        // Overnight window
+        return nowMinutes >= start || nowMinutes <= end;
+      });
+
+      // Track matched meal id for logging
+      if (matched) {
+        matchedMealTimeId = matched.id;
+      }
+
+      if (!matched) {
+        scanResult = {
+          success: false,
+          message: 'Access not allowed at this time',
+          messageAr: 'الدخول غير مسموح في هذا الوقت',
+          errorCode: 'OUTSIDE_MEAL_TIME',
+          card: card,
+          guest: card.guest,
+          restaurant: card.guest?.restaurant
+        };
+      } else {
+        // Enforce allowed meals per card via join table `_CardAllowedMeals`
+        // If no allowed meals are configured, treat as allowed; otherwise, require membership
+        const allowedExists = await prisma.$queryRaw<{ exists: boolean }[]>`
+          SELECT EXISTS (
+            SELECT 1 FROM "public"."_CardAllowedMeals"
+            WHERE "A" = ${card.id} AND "B" = ${matched.id}
+          ) as exists
+        `;
+
+        const isAllowed = (allowedExists[0]?.exists ?? false);
+        // If there are entries for this card in `_CardAllowedMeals`, isAllowed indicates membership.
+        // If there are no entries at all, allow by default.
+        const allowedCountRows = await prisma.$queryRaw<{ count: number }[]>`
+          SELECT COUNT(*)::int AS count FROM "public"."_CardAllowedMeals" WHERE "A" = ${card.id}
+        `;
+        const totalAllowedForCard = allowedCountRows[0]?.count ?? 0;
+
+        if (totalAllowedForCard > 0 && !isAllowed) {
+          scanResult = {
+            success: false,
+            message: 'Meal not allowed',
+            messageAr: 'الوجبة غير مسموحة',
+            errorCode: 'MEAL_NOT_ALLOWED',
+            card: card,
+            guest: card.guest,
+            restaurant: card.guest?.restaurant
+          };
+        } else {
+          // Compute window boundaries for today based on matched meal
+          const buildDateAt = (base: Date, timeStr: string) => {
+            const [hStr, mStr] = timeStr.split(":");
+            const h = parseInt(hStr || "0", 10);
+            const m = parseInt(mStr || "0", 10);
+            const d = new Date(base);
+            d.setHours(h, isNaN(m) ? 0 : m, 0, 0);
+            return d;
+          };
+          const today = new Date();
+          const startMinutes = parseToMinutes(matched.startTime);
+          const endMinutes = parseToMinutes(matched.endTime);
+          const windowStart = buildDateAt(today, matched.startTime);
+          const windowEnd = buildDateAt(today, matched.endTime);
+          if (endMinutes < startMinutes) {
+            // Overnight window: end is on the next day
+            windowEnd.setDate(windowEnd.getDate() + 1);
+          }
+
+          // Reject if already consumed in this meal window (one success per window)
+          const priorWindowSuccess = await prisma.scanLog.findFirst({
+            where: {
+              cardId: card.id,
+              isSuccess: true,
+              scanTime: {
+                gte: windowStart,
+                lte: windowEnd
+              }
+            },
+            orderBy: { scanTime: 'desc' }
+          });
+
+          if (priorWindowSuccess) {
+            scanResult = {
+              success: false,
+              message: 'Meal already consumed in this window',
+              messageAr: 'تم تناول الوجبة بالفعل في هذه الفترة',
+              errorCode: 'MEAL_ALREADY_CONSUMED',
+              card: card,
+              guest: card.guest,
+              restaurant: card.guest?.restaurant
+            };
+          } else if (card.maxUsage && card.usageCount >= card.maxUsage) {
+            scanResult = {
+              success: false,
+              message: 'Maximum usage limit exceeded',
+              messageAr: 'تم تجاوز الحد الأقصى للاستخدام',
+              errorCode: 'MEAL_LIMIT_EXCEEDED',
+              card: card,
+              guest: card.guest,
+              restaurant: card.guest?.restaurant
+            };
+          } else {
+            // Success case
+            scanResult = {
+              success: true,
+              message: 'Scan successful - Access granted',
+              messageAr: 'تم المسح بنجاح - تم السماح بالدخول',
+              errorCode: '',
+              card: card,
+              guest: card.guest,
+              restaurant: card.guest?.restaurant
+            };
+
+            // Update usage count for successful scan
+            await prisma.card.update({
+              where: { id: card.id },
+              data: { usageCount: card.usageCount + 1 }
+            });
+          }
+        }
+      }
+    }
+    else if (card.maxUsage && card.usageCount >= card.maxUsage) {
       scanResult = {
         success: false,
         message: 'Maximum usage limit exceeded',
@@ -169,17 +317,23 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Create scan log entry
+    // Create scan log entry (store matched meal time if determined)
+    const logData: Prisma.ScanLogUncheckedCreateInput = {
+      cardId: card?.id || null,
+      guestId: card?.guestId || null,
+      stationId: stationId,
+      isSuccess: scanResult.success,
+      errorCode: scanResult.errorCode || null,
+      errorMessage: scanResult.success ? null : scanResult.message,
+      scanTime: new Date()
+    };
+    // Persist the matched meal time id when available (computed earlier)
+    if (matchedMealTimeId) {
+      logData.matchedMealTimeId = matchedMealTimeId;
+    }
+
     const scanLog = await prisma.scanLog.create({
-      data: {
-        cardId: card?.id || null,
-        guestId: card?.guestId || null,
-        stationId: stationId,
-        isSuccess: scanResult.success,
-        errorCode: scanResult.errorCode || null,
-        errorMessage: scanResult.success ? null : scanResult.message,
-        scanTime: new Date()
-      }
+      data: logData
     });
 
     // Return response with scan result

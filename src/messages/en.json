@@ -1,5 +1,6 @@
 {
   "common": {
+    "open":"Open",
     "deleting": "deleting",
     "saving": "saving",
     "loginSuccess": "Login successful",
@@ -1269,10 +1270,15 @@
       "title": "Scan Results",
       "description": "View and manage card scan results"
     },
+    "manualScan": {
+      "title": "Manual Scan",
+      "description": "Manually scan guests and manage records"
+    },
     "record":{
       "errorCode":"Error Code"
     },
     "scanTable": {
+      
       "title": "Scan Results Table",
       "cardId": "Card ID",
       "guestName": "Guest Name",
@@ -1316,6 +1322,8 @@
        "refresh":"Refresh"
     },
     "table":{
+      "mealType":"Meal Type",
+      "mealWindow":"Meal Window",
      "guestName":"Guest Name",
      "company":"Company",
      "roomNumber":"Room Number",

@@ -6,6 +6,8 @@ import { User, Clock } from "lucide-react";
 import Image from "next/image";
 import { format } from "date-fns";
 import { parseCardDataString } from "@/lib/qr-generator";
+import { useEffect, useState } from "react";
+
 
 interface CardVisualCompactProps {
   card: {
@@ -19,6 +21,7 @@ interface CardVisualCompactProps {
       firstName: string;
       lastName: string;
       profileImagePath?: string;
+      thumbnailImagePath?: string;
       nationalId?: string;
       passportNo?: string;
       nationality?: string;
@@ -49,6 +52,28 @@ export function CardVisualCompact({
   locale = "en",
 }: CardVisualCompactProps) {
   const isArabic = locale === "ar";
+  const [imageFailed, setImageFailed] = useState(false);
+  // Normalize web path: ensure leading slash for local paths; keep http(s) as-is
+  const normalizeWebPath = (p?: string | null) => {
+    if (!p) return null;
+    if (p.startsWith("http://") || p.startsWith("https://")) return p;
+    return p.startsWith("/") ? p : "/" + p;
+  };
+
+  const [currentSrc, setCurrentSrc] = useState<string | null>(
+    normalizeWebPath(card.guest.profileImagePath) ||
+      normalizeWebPath(card.guest.thumbnailImagePath) ||
+      null
+  );
+  // Reset image error state and current source when the image paths change
+  useEffect(() => {
+    setImageFailed(false);
+    setCurrentSrc(
+      normalizeWebPath(card.guest.profileImagePath) ||
+        normalizeWebPath(card.guest.thumbnailImagePath) ||
+        null
+    );
+  }, [card.guest.profileImagePath, card.guest.thumbnailImagePath]);
 
   const restaurantName =
     isArabic && card.guest.restaurant.nameAr
@@ -58,6 +83,18 @@ export function CardVisualCompact({
   const guestName = isArabic
     ? `${card.guest.lastName} ${card.guest.firstName}`
     : `${card.guest.firstName} ${card.guest.lastName}`;
+
+  const handleImageError = () => {
+    // If profile fails and thumbnail exists, try thumbnail once
+    if (
+      currentSrc === normalizeWebPath(card.guest.profileImagePath) &&
+      normalizeWebPath(card.guest.thumbnailImagePath)
+    ) {
+      setCurrentSrc(normalizeWebPath(card.guest.thumbnailImagePath));
+      return;
+    }
+    setImageFailed(true);
+  };
 
   // استخراج بيانات الوجبات من cardData
   const parsedCardData = parseCardDataString(card.cardData);
@@ -93,16 +130,20 @@ export function CardVisualCompact({
         <div className="flex flex-col gap-3 justify-center items-center">
           <div className="bg-white/90 rounded-lg p-3 space-y-2 w-full">
             <div className="flex items-center gap-2 mb-2">
-              {card.guest.profileImagePath ? (
+              {currentSrc && !imageFailed ? (
                 <Image
-                  src={card.guest.profileImagePath}
+                  src={currentSrc}
                   alt={guestName}
-                  width={36}
-                  height={36}
-                  className="h-9 w-9 rounded-full object-cover border border-blue-200"
+                  width={64}
+                  height={64}
+                  className="h-16 w-16 rounded-full object-cover border border-blue-200"
+                  unoptimized
+                  onError={handleImageError}
                 />
               ) : (
-                <User className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                <div className="h-16 w-16 rounded-full border border-blue-200 bg-white/50 flex items-center justify-center">
+                  <User className="h-8 w-8 text-blue-600" />
+                </div>
               )}
               <p className="font-bold text-sm text-gray-800 truncate flex-1">
                 {guestName}

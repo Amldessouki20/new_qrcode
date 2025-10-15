@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { parseCardDataString } from "@/lib/qr-generator";
 import { format } from "date-fns";
 import { User, Clock } from "lucide-react";
+import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 
 interface Card {
@@ -17,6 +18,8 @@ interface Card {
   guest: {
     firstName: string;
     lastName: string;
+    profileImagePath?: string;
+    thumbnailImagePath?: string;
     nationalId: string;
     passportNo: string;
     nationality: string;
@@ -374,7 +377,26 @@ export function PrintMultipleCards({ cards }: PrintMultipleCardsProps) {
                 <div className="flex flex-col gap-3 justify-center items-center">
                   <div className="bg-white/90 rounded-lg p-3 space-y-2 w-full">
                     <div className="flex items-center gap-2 mb-2">
-                      <User className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                      {(() => {
+                        const normalizeWebPath = (p?: string) => {
+                          if (!p) return null;
+                          if (p.startsWith("http://") || p.startsWith("https://")) return p;
+                          return p.startsWith("/") ? p : "/" + p;
+                        };
+                        const imageSrc = normalizeWebPath(card.guest.profileImagePath) || normalizeWebPath(card.guest.thumbnailImagePath);
+                        return imageSrc ? (
+                          <Image
+                            src={imageSrc}
+                            alt={guestName}
+                            width={36}
+                            height={36}
+                            className="h-9 w-9 rounded-full object-cover border border-blue-200"
+                            unoptimized
+                          />
+                        ) : (
+                          <User className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                        );
+                      })()}
                       <p className="font-bold text-sm text-gray-800 truncate flex-1">
                         {guestName}
                       </p>
@@ -513,12 +535,6 @@ export function PrintMultipleCards({ cards }: PrintMultipleCardsProps) {
                         marginSize={4}
                         bgColor="#FFFFFF"
                         fgColor="#000000"
-                        imageSettings={{
-                          src: "",
-                          height: 0,
-                          width: 0,
-                          excavate: false,
-                        }}
                         className="border border-gray-200 rounded-md"
                       />
                       <p className="text-xs text-gray-500 mt-2 font-mono tracking-wider">

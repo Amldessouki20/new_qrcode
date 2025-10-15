@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyAccessToken } from '@/lib/jwt';
 import { hasPermission, PERMISSIONS } from '@/lib/permissions';
-import { uploadImage, deleteImage } from '@/lib/cloudinary';
+import { saveGuestImageLocal, deleteGuestImageLocal } from '@/lib/storage/local';
 import { validateImageFile } from '@/lib/image-utils-server';
 import { z } from 'zod';
 
@@ -84,6 +84,7 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
+    // Force local storage provider removed (always local by implementation)
     
     // Verify authentication
     const token = request.cookies.get('accessToken')?.value;
@@ -110,6 +111,7 @@ export async function POST(
       select: {
         id: true,
         profileImagePath: true,
+        thumbnailImagePath: true,
       },
     });
 
@@ -122,7 +124,12 @@ export async function POST(
     const validatedData = imageUploadSchema.parse(body);
 
     // Validate and upload image
-    let imageUploadResult;
+    // Declare fields for DB update in outer scope with safe defaults
+    let profileImagePath: string | null = null;
+    let thumbnailImagePath: string | null = null;
+    let imageSize: number | null = null;
+    let imageMimeType: string | null = null;
+
     try {
       // Support both data URLs ("data:mime;base64,....") and raw base64 strings
       const profileImage = validatedData.profileImage;
@@ -158,15 +165,12 @@ export async function POST(
         );
       }
 
-      // Upload to Cloudinary
-      imageUploadResult = await uploadImage(profileImage.includes(',') ? profileImage : `data:${mimeType};base64,${base64Data}`, {
-        folder: 'guest-profiles',
-        transformation: [
-          { width: 300, height: 300, crop: 'fill', gravity: 'face' },
-          { quality: 'auto:good' },
-          { fetch_format: 'auto' }
-        ]
-      });
+      // Upload image using selected provider (forced to local)
+      const localResult = await saveGuestImageLocal({ buffer, mimeType, guestId: id });
+      profileImagePath = localResult.profileImagePath;
+      thumbnailImagePath = localResult.thumbnailImagePath ?? null;
+      imageSize = localResult.bytes;
+      imageMimeType = localResult.mimeType;
     } catch (error) {
       console.error('Error processing profile image:', error);
       return NextResponse.json(
@@ -175,16 +179,23 @@ export async function POST(
       );
     }
 
-    // Delete old image from Cloudinary if exists
-    if (existingGuest.profileImagePath) {
+    // Safety check: ensure values are assigned before DB update
+    if (!profileImagePath || !imageMimeType || imageSize === null) {
+      return NextResponse.json(
+        { error: 'Failed to save profile image locally' },
+        { status: 500 }
+      );
+    }
+
+    // Delete old image from local storage if exists
+    if (existingGuest.profileImagePath && existingGuest.profileImagePath.startsWith('/uploads/')) {
       try {
-        // Extract public_id from Cloudinary URL
-        const urlParts = existingGuest.profileImagePath.split('/');
-        const publicIdWithExtension = urlParts[urlParts.length - 1];
-        const publicId = `guest-profiles/${publicIdWithExtension.split('.')[0]}`;
-        await deleteImage(publicId);
+        await deleteGuestImageLocal({
+          profileImagePath: existingGuest.profileImagePath,
+          thumbnailImagePath: existingGuest.thumbnailImagePath || undefined,
+        });
       } catch (error) {
-        console.error('Error deleting old image:', error);
+        console.error('Error deleting old local image:', error);
         // Continue with update even if image deletion fails
       }
     }
@@ -193,11 +204,11 @@ export async function POST(
     const updatedGuest = await prisma.guest.update({
       where: { id },
       data: {
-        profileImagePath: imageUploadResult.secure_url,
-        thumbnailImagePath: imageUploadResult.eager?.[0]?.secure_url || null,
+        profileImagePath,
+        thumbnailImagePath,
         imageUploadedAt: new Date(),
-        imageSize: imageUploadResult.bytes,
-        imageMimeType: `image/${imageUploadResult.format}`,
+        imageSize,
+        imageMimeType,
         updater: {
           connect: { id: payload.userId }
         },
@@ -278,6 +289,7 @@ export async function DELETE(
         firstName: true,
         lastName: true,
         profileImagePath: true,
+        thumbnailImagePath: true,
       },
     });
 
@@ -289,16 +301,17 @@ export async function DELETE(
       return NextResponse.json({ error: 'Guest has no profile image' }, { status: 404 });
     }
 
-    // Delete image from Cloudinary
+    // Delete image from local storage (if applicable)
     try {
-      // Extract public_id from Cloudinary URL
-      const urlParts = existingGuest.profileImagePath.split('/');
-      const publicIdWithExtension = urlParts[urlParts.length - 1];
-      const publicId = `guest-profiles/${publicIdWithExtension.split('.')[0]}`;
-      await deleteImage(publicId);
+      if (existingGuest.profileImagePath.startsWith('/uploads/')) {
+        await deleteGuestImageLocal({
+          profileImagePath: existingGuest.profileImagePath,
+          thumbnailImagePath: existingGuest.thumbnailImagePath || undefined,
+        });
+      }
     } catch (error) {
-      console.error('Error deleting image from Cloudinary:', error);
-      // Continue with database update even if Cloudinary deletion fails
+      console.error('Error deleting local image:', error);
+      // Continue with database update even if deletion fails
     }
 
     // Update guest to remove image information

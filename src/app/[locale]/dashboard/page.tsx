@@ -4,6 +4,7 @@ import { verifyAccessToken } from '@/lib/jwt';
 import { prisma } from '@/lib/prisma';
 import { DashboardContent } from './components/DashboardContent';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { hasPermission, PERMISSIONS } from '@/lib/permissions';
 import { UserRole } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
@@ -56,6 +57,13 @@ export default async function DashboardPage({
   
   if (!user) {
     redirect(`/${locale}/login`);
+  }
+  
+  // احمِ صفحة الداشبورد بصلاحية صريحة
+  const canViewDashboard = await hasPermission(user.id, PERMISSIONS.DASHBOARD_VIEW);
+  if (!canViewDashboard && user.role !== UserRole.ADMIN && user.role !== UserRole.SUPER_ADMIN) {
+    // وجّه المستخدم لصفحة لديه صلاحية أساسية لها (مثلاً الإقامة)
+    redirect(`/${locale}/accommodation`);
   }
   
   return (

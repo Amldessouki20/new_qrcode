@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,10 @@ interface ScanRecord {
   guestNameAr?: string;
   roomNumber?: string;
   company?: string;
+  mealType?: string;
+  mealTypeAr?: string;
+  mealStartTime?: string;
+  mealEndTime?: string;
   restaurantName: string;
   restaurantNameAr?: string;
   scanTime: Date;
@@ -67,6 +71,9 @@ export default function AccommodationScanTable({
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [searchInput, setSearchInput] = useState("");
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const [lastTopId, setLastTopId] = useState<string | null>(null);
+  const highlightTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const recordsPerPage = 10;
 
@@ -91,13 +98,26 @@ export default function AccommodationScanTable({
       const data = await response.json();
       setScanRecords(data.records || []);
       setTotalPages(Math.ceil((data.total || 0) / recordsPerPage));
+
+      // Highlight newest record briefly if the top record changed
+      const newTopId: string | null = data.records?.[0]?.id || null;
+      if (newTopId && newTopId !== lastTopId) {
+        setHighlightId(newTopId);
+        setLastTopId(newTopId);
+        if (highlightTimerRef.current) {
+          clearTimeout(highlightTimerRef.current);
+        }
+        highlightTimerRef.current = setTimeout(() => {
+          setHighlightId(null);
+        }, 3000);
+      }
     } catch (error) {
       console.error("Error fetching scan records:", error);
       setScanRecords([]);
     } finally {
       setLoading(false);
     }
-  }, [currentPage, statusFilter, searchTerm]);
+  }, [currentPage, statusFilter, searchTerm, lastTopId]);
 
 useEffect(() => {
   const delayDebounce = setTimeout(() => {
@@ -119,6 +139,15 @@ useEffect(() => {
       fetchScanRecords();
     }
   }, [refreshKey, fetchScanRecords]);
+
+  // Cleanup any pending highlight timers on unmount
+  useEffect(() => {
+    return () => {
+      if (highlightTimerRef.current) {
+        clearTimeout(highlightTimerRef.current);
+      }
+    };
+  }, []);
 
 
   // Get status badge
@@ -178,7 +207,7 @@ useEffect(() => {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-1">
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div className="flex flex-col sm:flex-row gap-2 flex-1">
@@ -219,15 +248,17 @@ useEffect(() => {
       </div>
 
       {/* Table */}
-      <div className="border rounded-lg overflow-hidden">
-        <Table >
+      <div className="border p-0.5 mt-7 rounded-lg overflow-hidden bg-white ">
+        <Table  >
           <TableHeader>
-            <TableRow  className="text-sm">
+            <TableRow  className="text-sm p-0 font-medium">
               <TableHead>{t("table.guestName")}</TableHead>
               <TableHead>{t("table.company")}</TableHead>
               <TableHead>{t("table.roomNumber")}</TableHead>
               <TableHead>{t("table.restaurant")}</TableHead>
               <TableHead>{t("table.scanTime")}</TableHead>
+              <TableHead>{t("table.mealType")}</TableHead>
+              <TableHead>{t("table.mealWindow")}</TableHead>
               <TableHead>{t("table.status")}</TableHead>
               <TableHead>{t("table.message")}</TableHead>
               <TableHead>{t("table.usage")}</TableHead>
@@ -237,7 +268,7 @@ useEffect(() => {
             {scanRecords.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={8}
+                  colSpan={10}
                   className="text-center py-4 text-muted-foreground"
                 >
                   {t("table.noData")}
@@ -245,18 +276,36 @@ useEffect(() => {
               </TableRow>
             ) : (
               scanRecords.map((record) => (
-                <TableRow key={record.id}>
-                  <TableCell>
-                    <div className="font-medium">
+                <TableRow
+                  key={record.id}
+                  className={
+                    highlightId === record.id
+                      ? (record.status === "SUCCESS"
+                          ? "bg-green-500 transition-colors"
+                          : record.status === "FAILED"
+                            ? "bg-red-500 transition-colors"
+                            : "bg-yellow-200 transition-colors")
+                      : undefined
+                  }
+                >
+                  <TableCell className="font-medium">
+                    <div
+                      className={
+                        highlightId === record.id
+                          ? (
+                              record.status === "SUCCESS"
+                                ? "font-semibold text-lg text-green-700"
+                                : record.status === "FAILED"
+                                  ? "font-semibold text-lg text-red-700"
+                                  : "font-semibold text-lg text-yellow-800"
+                            )
+                          : "font-medium"
+                      }
+                    >
                       {isArabic
                         ? record.guestNameAr || record.guestName
                         : record.guestName}
                     </div>
-                    {/* {record.company && (
-                      <div className="text-sm text-muted-foreground">
-                        {record.company}
-                      </div>
-                    )} */}
                   </TableCell>
                   <TableCell>{record.company || "-"}</TableCell>
                   <TableCell>{record.roomNumber || "-"}</TableCell>
@@ -266,9 +315,45 @@ useEffect(() => {
                       : record.restaurantName}
                   </TableCell>
                   <TableCell>
-                    <div className="text-sm">{formatDate(record.scanTime)}</div>
+                    <div className={highlightId === record.id ? "text-base" : "text-sm"}>
+                      {formatDate(record.scanTime)}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {(
+                      isArabic ? record.mealTypeAr || record.mealType : record.mealType
+                    ) ? (
+                      <Badge
+                        variant={highlightId === record.id ? "default" : "outline"}
+                        className={
+                          highlightId === record.id
+                            ? (
+                                record.status === "SUCCESS"
+                                  ? "bg-green-100 text-green-800"
+                                  : record.status === "FAILED"
+                                    ? "bg-red-100 text-red-800"
+                                    : "bg-yellow-100 text-yellow-800"
+                              )
+                            : undefined
+                        }
+                      >
+                        {isArabic
+                          ? record.mealTypeAr || record.mealType
+                          : record.mealType}
+                      </Badge>
+                    ) : (
+                      "-"
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <div className={highlightId === record.id ? "text-base" : "text-sm"}>
+                      {record.mealStartTime && record.mealEndTime
+                        ? `${record.mealStartTime} - ${record.mealEndTime}`
+                        : "-"}
+                    </div>
                   </TableCell>
                   <TableCell>{getStatusBadge(record.status)}</TableCell>
+
                   <TableCell>
                     <div className="max-w-xs">
                       <div className="text-sm">
@@ -364,7 +449,7 @@ function TableSkeleton() {
         <Table>
           <TableHeader>
             <TableRow>
-              {Array.from({ length: 7 }).map((_, i) => (
+              {Array.from({ length: 10 }).map((_, i) => (
                 <TableHead key={i}>
                   <Skeleton className="h-4 w-20" />
                 </TableHead>
@@ -374,7 +459,7 @@ function TableSkeleton() {
           <TableBody>
             {Array.from({ length: 5 }).map((_, i) => (
               <TableRow key={i}>
-                {Array.from({ length: 7 }).map((_, j) => (
+                {Array.from({ length: 10 }).map((_, j) => (
                   <TableCell key={j}>
                     <Skeleton className="h-4 w-16" />
                   </TableCell>

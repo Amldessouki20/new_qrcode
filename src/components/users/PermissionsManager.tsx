@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Shield, Users, Building, CreditCard, ScanLine } from 'lucide-react';
+import { Shield, Users, Building, CreditCard, ScanLine, Home } from 'lucide-react';
 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown } from "lucide-react";
@@ -32,6 +32,19 @@ interface PermissionGroup {
 
 const permissionGroups: PermissionGroup[] = [
   {
+    id: 'dashboard',
+    name: 'Dashboard',
+    description: 'Access to main dashboard overview',
+    icon: ScanLine,
+    permissions: [
+      {
+        id: 'dashboard.view',
+        name: 'View Dashboard',
+        description: 'Can view dashboard overview and stats',
+      },
+    ],
+  },
+  {
     id: 'users',
     name: 'User Management',
     description: 'Manage users and their permissions',
@@ -56,11 +69,6 @@ const permissionGroups: PermissionGroup[] = [
         id: 'users.delete',
         name: 'Delete Users',
         description: 'Can delete users',
-      },
-      {
-        id: 'users.permissions',
-        name: 'Manage Permissions',
-        description: 'Can assign and remove permissions',
       },
     ],
   },
@@ -89,11 +97,6 @@ const permissionGroups: PermissionGroup[] = [
         id: 'restaurants.delete',
         name: 'Delete Restaurants',
         description: 'Can delete restaurants',
-      },
-      {
-        id: 'restaurants.meals',
-        name: 'Manage Meals',
-        description: 'Can manage meal times and assignments',
       },
     ],
   },
@@ -133,8 +136,8 @@ const permissionGroups: PermissionGroup[] = [
     permissions: [
       {
         id: 'cards.read',
-        name: 'View Cards',
-        description: 'Can view card list and details',
+        name: 'Read Cards',
+        description: 'Can read card list and details',
       },
       {
         id: 'cards.create',
@@ -154,23 +157,13 @@ const permissionGroups: PermissionGroup[] = [
     ],
   },
   {
-    id: 'scanning',
-    name: 'Card Scanning',
-    description: 'Scan and validate access cards',
+    id: 'scan',
+    name: 'Scan Logs',
+    description: 'View scanning history and logs',
     icon: ScanLine,
     permissions: [
       {
-        id: 'scanning.scan',
-        name: 'Scan Cards',
-        description: 'Can scan QR codes and RFID cards',
-      },
-      {
-        id: 'scanning.validate',
-        name: 'Validate Access',
-        description: 'Can validate guest access permissions',
-      },
-      {
-        id: 'scanning.logs',
+        id: 'scan.logs',
         name: 'View Scan Logs',
         description: 'Can view scanning history and logs',
       },
@@ -209,7 +202,34 @@ const permissionGroups: PermissionGroup[] = [
       },
     ],
   },
-  
+  {
+    id: 'accommodation',
+    name: 'Accommodation Management',
+    description: 'Manage accommodation-related actions and records',
+    icon: Home,
+    permissions: [
+      {
+        id: 'accommodation.read',
+        name: 'Read Accommodation',
+        description: 'Can read accommodation pages and data',
+      },
+      {
+        id: 'accommodation.create',
+        name: 'Create Accommodation',
+        description: 'Can create accommodation records or actions',
+      },
+      {
+        id: 'accommodation.update',
+        name: 'Edit Accommodation',
+        description: 'Can edit accommodation records',
+      },
+      {
+        id: 'accommodation.delete',
+        name: 'Delete Accommodation',
+        description: 'Can delete accommodation records',
+      },
+    ],
+  },
 ];
 
 export function PermissionsManager({ permissions, onPermissionsChange }: PermissionsManagerProps) {

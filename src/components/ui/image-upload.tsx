@@ -265,6 +265,7 @@ export function ImageUpload({
               src={previewUrl}
               alt="Preview"
               fill
+              unoptimized
               className="object-cover rounded-lg border border-gray-200 dark:border-gray-700"
               sizes="128px"
             />
@@ -308,9 +309,9 @@ export function ImageUpload({
         {/* File Info for Preview */}
         {previewUrl && showPreview && !isUploading && (
           <div className="text-center">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+            {/* <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
               تم رفع الصورة بنجاح
-            </p>
+            </p> */}
             <button
               onClick={handleClick}
               className="text-sm text-blue-500 hover:text-blue-600 underline"

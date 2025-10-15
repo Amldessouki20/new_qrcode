@@ -3,8 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { verifyAccessToken } from '@/lib/jwt';
 import { hasPermission, PERMISSIONS } from '@/lib/permissions';
-import { uploadImage, deleteImage } from '@/lib/cloudinary';
 import { validateImageFile } from '@/lib/image-utils-server';
+import { saveGuestImageLocal, deleteGuestImageLocal } from '@/lib/storage/local';
 import { z } from 'zod';
 
 // export const dynamic = 'force-dynamic';
@@ -134,6 +134,7 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
+    // Removed unused variables
     // Verify authentication
     const token = request.cookies.get('accessToken')?.value;
     if (!token) {
@@ -167,8 +168,11 @@ export async function PUT(
     const validatedData = updateGuestSchema.parse(body);
 
     // Handle profile image update
-    let imageUploadResult = null;
     let shouldDeleteOldImage = false;
+    let newProfileImagePath: string | null = null;
+    let newThumbnailImagePath: string | null = null;
+    let newImageSize: number | null = null;
+    let newImageMimeType: string | null = null;
 
     if (validatedData.removeImage) {
       // User wants to remove the existing image
@@ -181,15 +185,10 @@ export async function PUT(
         const mimeType = validatedData.profileImage.split(',')[0].split(':')[1].split(';')[0];
         const buffer = Buffer.from(base64Data, 'base64');
         
-        // Create a file-like object for validation
-        const imageFile = {
-          size: buffer.length,
-          type: mimeType,
-          name: `profile-${Date.now()}.${mimeType.split('/')[1]}`
-        };
+        // Buffer is validated server-side; no need to construct a file-like object
 
-        // Validate image
-        const validation = await validateImageFile(imageFile as File);
+        // Validate image using the raw Buffer on server-side
+        const validation = await validateImageFile(buffer);
         if (!validation.isValid) {
           return NextResponse.json(
             { error: validation.error },
@@ -197,14 +196,11 @@ export async function PUT(
           );
         }
 
-        // Upload to Cloudinary
-        imageUploadResult = await uploadImage(validatedData.profileImage, {
-          folder: 'guest-profiles',
-          transformation: [
-            { width: 300, height: 300, crop: 'fill', gravity: 'face' },
-            { quality: 'auto', format: 'auto' }
-          ]
-        });
+        const localResult = await saveGuestImageLocal({ buffer, mimeType, guestId: id });
+        newProfileImagePath = localResult.profileImagePath;
+        newThumbnailImagePath = localResult.thumbnailImagePath ?? null;
+        newImageSize = localResult.bytes;
+        newImageMimeType = localResult.mimeType;
 
         shouldDeleteOldImage = true; // Delete old image when uploading new one
       } catch (error) {
@@ -216,16 +212,15 @@ export async function PUT(
       }
     }
 
-    // Delete old image from Cloudinary if needed
-    if (shouldDeleteOldImage && existingGuest.profileImagePath) {
+    // Delete old image from local storage if needed
+    if (shouldDeleteOldImage && existingGuest.profileImagePath && existingGuest.profileImagePath.startsWith('/uploads/')) {
       try {
-        // Extract public_id from Cloudinary URL
-        const urlParts = existingGuest.profileImagePath.split('/');
-        const publicIdWithExtension = urlParts[urlParts.length - 1];
-        const publicId = `guest-profiles/${publicIdWithExtension.split('.')[0]}`;
-        await deleteImage(publicId);
+        await deleteGuestImageLocal({
+          profileImagePath: existingGuest.profileImagePath,
+          thumbnailImagePath: existingGuest.thumbnailImagePath || undefined,
+        });
       } catch (error) {
-        console.error('Error deleting old image:', error);
+        console.error('Error deleting old local image:', error);
         // Continue with update even if image deletion fails
       }
     }
@@ -279,11 +274,12 @@ export async function PUT(
     }
 
     // Filter out fields that are not part of the guest model
+    // Exclude transient image fields: profileImage, removeImage
     const { restaurantId, checkInDate, expiredDate, ...guestData } = validatedData;
     
     // Prepare update data - filter out undefined values
     const filteredGuestData = Object.fromEntries(
-      Object.entries(guestData).filter(([, value]) => value !== undefined)
+      Object.entries(guestData).filter(([key, value]) => value !== undefined && key !== 'profileImage' && key !== 'removeImage')
     );
     
     const updateData: Prisma.GuestUpdateInput = {
@@ -296,13 +292,12 @@ export async function PUT(
     };
 
     // Handle image updates
-    if (imageUploadResult) {
-      // New image uploaded
-      updateData.profileImagePath = imageUploadResult.secure_url;
-      updateData.thumbnailImagePath = imageUploadResult.eager?.[0]?.secure_url || null;
+    if (newProfileImagePath) {
+      updateData.profileImagePath = newProfileImagePath;
+      updateData.thumbnailImagePath = newThumbnailImagePath;
       updateData.imageUploadedAt = new Date();
-      updateData.imageSize = imageUploadResult.bytes;
-      updateData.imageMimeType = `image/${imageUploadResult.format}`;
+      updateData.imageSize = newImageSize;
+      updateData.imageMimeType = newImageMimeType;
     } else if (shouldDeleteOldImage) {
       // Remove image
       updateData.profileImagePath = null;

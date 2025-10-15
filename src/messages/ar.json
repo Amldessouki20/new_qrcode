@@ -1,5 +1,6 @@
 {
   "common": {
+    "open":"فتح",
     "appName":"وجبات",
     "save": "حفظ",
     "saving": "جاري الحفظ...",
@@ -1287,6 +1288,8 @@
   },
 
   "table": {
+    "mealType":"نوع الوجبة",
+    "mealWindow":"وقت الوجبة",
     "guestName": "اسم الضيف",
     "roomNumber": "رقم الغرفة",
     "restaurant": "المطعم",

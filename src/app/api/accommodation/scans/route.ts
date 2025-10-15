@@ -37,9 +37,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Check permissions
-    const canViewScans = await hasPermission(payload.userId, PERMISSIONS.CARD_READ);
-    if (!canViewScans) {
+    // Check permissions: allow by role baseline (ADMIN/SUPER_ADMIN/USER) or ACCOMMODATION_READ
+    // Fetch user role to align API with page access rules
+    const user = await prisma.user.findUnique({
+      where: { id: payload.userId },
+      select: { role: true }
+    });
+
+    const roleAllows = user && (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN' || user.role === 'USER');
+    const hasAccommodationPermission = await hasPermission(payload.userId, PERMISSIONS.ACCOMMODATION_READ);
+    if (!roleAllows && !hasAccommodationPermission) {
       return NextResponse.json(
         { error: 'Insufficient permissions' },
         { status: 403 }
@@ -130,9 +137,14 @@ export async function GET(request: NextRequest) {
             include: {
               guest: {
                 include: {
-                  restaurant: true
+                  restaurant: {
+                    include: {
+                      mealTimes: true
+                    }
+                  }
                 }
-              }
+              },
+              mealTime: true
             }
           }
         },
@@ -149,13 +161,38 @@ export async function GET(request: NextRequest) {
     const records = scanLogs.map(log => {
       const guest = log.card?.guest;
       const restaurant = guest?.restaurant;
+
+      // Find matched meal time based on the scan timestamp and restaurant meal windows
+      const parseToMinutes = (t: string) => {
+        const [h, m] = t.split(":").map(v => parseInt(v, 10));
+        return (isNaN(h) ? 0 : h) * 60 + (isNaN(m) ? 0 : m);
+      };
+      const scanDate = log.scanTime;
+      const scanMinutes = scanDate.getHours() * 60 + scanDate.getMinutes();
+      const matched = (restaurant?.mealTimes || []).find(mt => {
+        const start = parseToMinutes(mt.startTime);
+        const end = parseToMinutes(mt.endTime);
+        if (end >= start) {
+          return scanMinutes >= start && scanMinutes <= end;
+        }
+        // Overnight window
+        return scanMinutes >= start || scanMinutes <= end;
+      });
+
+      // Prefer historically stored matched meal time if available
+      const matchedId = log.matchedMealTimeId ?? undefined;
+      const matchedFromStored = matchedId
+        ? (restaurant?.mealTimes || []).find(mt => mt.id === matchedId)
+        : undefined;
       
-      // Determine status based on success and error message
+      // Determine status based on success and error code
       let status: 'SUCCESS' | 'FAILED' | 'WARNING' = 'FAILED';
       if (log.isSuccess) {
         status = 'SUCCESS';
-      } else if (log.errorMessage?.includes('meal time') || log.errorMessage?.includes('limit')) {
+      } else if (log.errorCode === 'OUTSIDE_MEAL_TIME' || log.errorCode === 'MEAL_LIMIT_EXCEEDED' || log.errorCode === 'MEAL_ALREADY_CONSUMED') {
         status = 'WARNING';
+      } else {
+        status = 'FAILED';
       }
 
       return {
@@ -165,6 +202,10 @@ export async function GET(request: NextRequest) {
         guestNameAr: guest ? `${guest.firstName} ${guest.lastName}` : 'ضيف غير معروف',
         roomNumber: guest?.roomNumber,
         company: guest?.company,
+        mealType: matchedFromStored?.name || matched?.name || log.card?.mealTime?.name,
+        mealTypeAr: matchedFromStored?.nameAr || matched?.nameAr || log.card?.mealTime?.nameAr,
+        mealStartTime: matchedFromStored?.startTime || matched?.startTime || log.card?.mealTime?.startTime,
+        mealEndTime: matchedFromStored?.endTime || matched?.endTime || log.card?.mealTime?.endTime,
         restaurantName: restaurant?.name || 'Unknown Restaurant',
         restaurantNameAr: restaurant?.nameAr || 'مطعم غير معروف',
         scanTime: log.scanTime,
@@ -175,7 +216,7 @@ export async function GET(request: NextRequest) {
         messageAr: log.isSuccess 
           ? 'تم المسح بنجاح - تم السماح بالدخول'
           : getArabicErrorMessage(log.errorMessage),
-        errorCode: log.isSuccess ? undefined : extractErrorCode(log.errorMessage),
+        errorCode: log.isSuccess ? undefined : (log.errorCode || extractErrorCode(log.errorMessage)),
         usageCount: log.card?.usageCount,
         maxUsage: log.card?.maxUsage,
         validFrom: log.card?.validFrom,
@@ -217,6 +258,8 @@ function getArabicErrorMessage(errorMessage?: string | null): string {
     'Guest has checked out': 'الضيف قد غادر',
     'Maximum usage limit exceeded': 'تم تجاوز الحد الأقصى للاستخدام',
     'Access not allowed at this time': 'الدخول غير مسموح في هذا الوقت',
+    'Meal already consumed in this window': 'تم تناول الوجبة بالفعل في هذه الفترة',
+    'Meal not allowed': 'الوجبة غير مسموحة',
     'Wrong restaurant': 'مطعم خاطئ',
     'Gate not found': 'البوابة غير موجودة',
     'System error': 'خطأ في النظام'
@@ -244,6 +287,7 @@ function extractErrorCode(errorMessage?: string | null): string | undefined {
     'Guest has checked out': 'GUEST_CHECKOUT',
     'Maximum usage limit exceeded': 'MEAL_LIMIT_EXCEEDED',
     'Access not allowed at this time': 'OUTSIDE_MEAL_TIME',
+    'Meal not allowed': 'MEAL_NOT_ALLOWED',
     'Wrong restaurant': 'RESTAURANT_NOT_FOUND',
     'Gate not found': 'GATE_NOT_FOUND',
     'System error': 'SYSTEM_ERROR'

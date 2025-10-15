@@ -9,7 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Loader2, User } from 'lucide-react';
+import Image from 'next/image';
 import { ImageUpload, ImageUploadError } from '@/components/ui/image-upload';
 import { GuestAvatar } from '@/components/ui/guest-avatar';
 
@@ -80,6 +81,12 @@ export function GuestForm({ initialData, isEdit = false }: GuestFormProps) {
       religion?: string;
       jobTitle?: string;
       roomNumber?: string;
+      // Image fields from API
+      profileImagePath?: string;
+      thumbnailImagePath?: string;
+      imageUploadedAt?: string;
+      imageSize?: number;
+      imageMimeType?: string;
     };
     card: {
       id: string;
@@ -198,6 +205,7 @@ export function GuestForm({ initialData, isEdit = false }: GuestFormProps) {
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || 'Failed to save guest');
+        
       }
 
       const data = await response.json();
@@ -414,9 +422,9 @@ export function GuestForm({ initialData, isEdit = false }: GuestFormProps) {
           </div>
 
           {/* Profile Image Upload */}
-          <div className="space-y-2">
+          <div className="space-y-4 pl-45">
             <Label>{t('guests.profileImage')}</Label>
-            <div className="flex items-start gap-4">
+            <div className="flex items-start gap-2">
               {/* Current Image Preview */}
               {(initialData?.profileImagePath || formData.profileImage) && (
                 <div className="flex flex-col items-center gap-2">
@@ -451,7 +459,7 @@ export function GuestForm({ initialData, isEdit = false }: GuestFormProps) {
                 </p>
               </div>
             </div>
-          </div>
+           </div>
 
           <div className="flex items-center space-x2">
             <input  className="h-8 text-sm px-2 max-w-xs"
@@ -464,7 +472,7 @@ export function GuestForm({ initialData, isEdit = false }: GuestFormProps) {
             <Label htmlFor="isActive">{t('guests.isActive')}</Label>
           </div>
 
-          <div className="flex flex-col gap-2 ">
+          <div className="flex gap-2 ">
             <Button
               type="button"
               variant="outline"
@@ -483,7 +491,7 @@ export function GuestForm({ initialData, isEdit = false }: GuestFormProps) {
       </Card>
 
       {/* Card Display Section */}
-      { false&&showCard && createdGuest && (
+      { showCard && createdGuest && (
         <Card className="mt-6">
            <CardHeader>
              <CardTitle className="text-green-600">{t('guests.CreatedSuccessfully')}</CardTitle>
@@ -494,6 +502,21 @@ export function GuestForm({ initialData, isEdit = false }: GuestFormProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <h4 className="font-semibold text-sm text-gray-600">{t('guests.guestInformation')}</h4>
+                    <div className="flex items-center gap-3 py-2">
+                      {createdGuest?.guest?.profileImagePath ? (
+                        <Image
+                          src={createdGuest.guest.profileImagePath}
+                          alt={`${createdGuest.guest.firstName} ${createdGuest.guest.lastName}`}
+                          width={64}
+                          height={64}
+                          className="rounded-full border"
+                        />
+                      ) : (
+                        <div className="w-16 h-16 rounded-full bg-gray-100 border flex items-center justify-center">
+                          <User className="w-8 h-8 text-gray-400" />
+                        </div>
+                      )}
+                    </div>
                     <p><strong>{t('guests.name')}:</strong> {createdGuest?.guest?.firstName} {createdGuest?.guest?.lastName}</p>
                     <p><strong>{t('guests.nationalId')}:</strong> {createdGuest?.guest?.nationalId || 'N/A'}</p>
                     <p><strong>{t('guests.company')}:</strong> {createdGuest?.guest?.company || 'N/A'}</p>

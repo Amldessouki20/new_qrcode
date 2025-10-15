@@ -19,6 +19,7 @@ interface CardPreviewProps {
       firstName: string;
       lastName: string;
       profileImagePath?: string;
+      thumbnailImagePath: string,
       nationalId: string;
       company?: string;
       religion?: string;
@@ -38,6 +39,7 @@ interface CardPreviewProps {
 
 export function CardPreview({ card, size = 'small' }: CardPreviewProps) {
   const [qrCodeSvg, setQrCodeSvg] = useState<string>('');
+  const [imageFailed, setImageFailed] = useState<boolean>(false);
 
   useEffect(() => {
     const generateQR = async () => {
@@ -58,6 +60,11 @@ export function CardPreview({ card, size = 'small' }: CardPreviewProps) {
     };
     generateQR();
   }, [card.cardData]);
+
+  // Reset image error state when the source changes
+  useEffect(() => {
+    setImageFailed(false);
+  }, [card.guest?.profileImagePath]);
 
   const sizeClasses = {
     small: {
@@ -99,12 +106,24 @@ export function CardPreview({ card, size = 'small' }: CardPreviewProps) {
           {/* Left Side - Guest Info */}
           <div className="flex-1 pr-3">
             {/* Guest Name */}
-            {card.guest?.profileImagePath && (
+            {card.guest?.profileImagePath && !imageFailed ? (
               <Image
                 src={card.guest.profileImagePath}
                 alt={`${card.guest.firstName} ${card.guest.lastName}`}
-                className="w-8 h-8 rounded-full object-cover border border-white/40 mb-1"
+                width={64}
+                height={64}
+                className="w-16 h-16 rounded-full object-cover border border-white/40 mb-1"
+                unoptimized
+                onError={() => setImageFailed(true)}
               />
+            ) : (
+              <div className="w-16 h-16 rounded-full border border-white/40 mb-1 flex items-center justify-center bg-white/20">
+                {/* Fallback avatar when image is missing */}
+                <span className="text-sm font-semibold text-white/80">
+                  {(card.guest?.firstName?.[0] || '').toUpperCase()}
+                  {(card.guest?.lastName?.[0] || '').toUpperCase()}
+                </span>
+              </div>
             )}
             <div className={`${currentSize.text} font-semibold text-white mb-1`}>
               {card.guest ? `${card.guest.firstName} ${card.guest.lastName}` : 'Unassigned Guest'}

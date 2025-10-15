@@ -113,6 +113,7 @@ const SimpleCard: React.FC<SimpleCardProps> = ({ cardData, qrCodeDataURL }) => {
               alt="QR Code" 
               width={120}
               height={120}
+              unoptimized
             />
           </div>
         </div>

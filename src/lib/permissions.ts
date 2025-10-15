@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 
 // Permission constants based on the seeded data
 export const PERMISSIONS = {
+  // Dashboard Access
+  DASHBOARD_VIEW: "dashboard.view",
   // User Management
   USER_CREATE: "users.create",
   USER_READ: "users.read",
@@ -249,7 +251,6 @@ export const PERMISSION_GROUPS = {
     PERMISSIONS.GATE_VIEW,
     PERMISSIONS.GATE_CONTROL,
   ],
-  // Accommodation Management
   ACCOMMODATION_MANAGEMENT: [
     PERMISSIONS.ACCOMMODATION_CREATE,
     PERMISSIONS.ACCOMMODATION_READ,

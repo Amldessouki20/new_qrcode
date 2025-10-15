@@ -3,8 +3,9 @@ import { prisma } from '@/lib/prisma';
 import { verifyAccessToken } from '@/lib/jwt';
 import { hasPermission, PERMISSIONS } from '@/lib/permissions';
 import { createCardDataString } from '@/lib/qr-generator';
-import { uploadImage } from '@/lib/cloudinary';
+// Cloudinary upload disabled: relying on local storage only
 import { validateImageFile } from '@/lib/image-utils-server';
+import { saveGuestImageLocal } from '@/lib/storage/local';
 import { z } from 'zod';
 
 // export const dynamic = 'force-dynamic';
@@ -163,6 +164,8 @@ export async function GET(request: NextRequest) {
         id: true,
         firstName: true,
         lastName: true,
+        profileImagePath: true,
+        thumbnailImagePath: true,
         nationalId: true,
         passportNo: true,
         nationality: true,
@@ -237,6 +240,7 @@ export async function GET(request: NextRequest) {
 // POST /api/guests - Create new guest
 export async function POST(request: NextRequest) {
   try {
+    // Removed unused variables
     // Verify authentication
     const token = request.cookies.get('accessToken')?.value;
     if (!token) {
@@ -259,7 +263,9 @@ export async function POST(request: NextRequest) {
     const validatedData = createGuestSchema.parse(body);
 
     // Validate profile image if provided
-    let imageUploadResult = null;
+    // Cloudinary upload disabled
+    let localImageBuffer: Buffer | null = null;
+    let localMimeType: string | null = null;
     if (validatedData.profileImage) {
       try {
         // Support both data URLs ("data:mime;base64,....") and raw base64 strings
@@ -296,15 +302,11 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        // Upload to Cloudinary
-        imageUploadResult = await uploadImage(profileImage.includes(',') ? profileImage : `data:${mimeType};base64,${base64Data}`, {
-          folder: 'guest-profiles',
-          transformation: [
-            { width: 300, height: 300, crop: 'fill', gravity: 'face' },
-            { quality: 'auto:good' },
-            { fetch_format: 'auto' }
-          ]
-        });
+        // Always keep local buffer as fallback
+        localImageBuffer = buffer;
+        localMimeType = mimeType;
+
+        // Cloudinary branch removed: always fallback to local saving below
       } catch (error) {
         console.error('Error processing profile image:', error);
         return NextResponse.json(
@@ -398,12 +400,12 @@ export async function POST(request: NextRequest) {
         roomNumber: validatedData.roomNumber || null,
         checkInDate: validatedData.checkInDate ? new Date(validatedData.checkInDate) : null,
         expiredDate: validatedData.expiredDate ? new Date(validatedData.expiredDate) : null,
-        // Profile image fields
-        profileImagePath: imageUploadResult?.secure_url || null,
-        thumbnailImagePath: imageUploadResult?.eager?.[0]?.secure_url || null,
-        imageUploadedAt: imageUploadResult ? new Date() : null,
-        imageSize: imageUploadResult?.bytes || null,
-        imageMimeType: imageUploadResult?.format ? `image/${imageUploadResult.format}` : null,
+        // Profile image fields (initialized empty; will be set after local save)
+        profileImagePath: null,
+        thumbnailImagePath: null,
+        imageUploadedAt: null,
+        imageSize: null,
+        imageMimeType: null,
         restaurant: {
           connect: { id: validatedData.restaurantId }
         },
@@ -412,9 +414,33 @@ export async function POST(request: NextRequest) {
         }
       };
 
-      const guest = await tx.guest.create({
+      let guest = await tx.guest.create({
         data: guestData,
       });
+
+      // Save image locally and update the guest
+      if (localImageBuffer && localMimeType) {
+        try {
+          const localResult = await saveGuestImageLocal({
+            buffer: localImageBuffer,
+            mimeType: localMimeType,
+            guestId: guest.id,
+          });
+          guest = await tx.guest.update({
+            where: { id: guest.id },
+            data: {
+              profileImagePath: localResult.profileImagePath,
+              thumbnailImagePath: localResult.thumbnailImagePath,
+              imageUploadedAt: new Date(),
+              imageSize: localResult.bytes,
+              imageMimeType: localResult.mimeType,
+            },
+          });
+        } catch (err) {
+          console.error('Error saving local guest image:', err);
+          // Continue without failing the entire guest creation
+        }
+      }
 
       // Create card for the guest
       const cardNumber = generateCardNumber();

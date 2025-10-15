@@ -232,6 +232,7 @@ const PrintableCard: React.FC<PrintableCardProps> = ({
               alt={`${guest.firstName} ${guest.lastName}`}
               width={40}
               height={40}
+              unoptimized
               style={{ borderRadius: '50%', objectFit: 'cover', border: '1px solid #ddd', marginBottom: 6 }}
             />
           )}
@@ -260,6 +261,7 @@ const PrintableCard: React.FC<PrintableCardProps> = ({
               alt="QR Code" 
               width={120}
               height={120}
+              unoptimized
               className="qr-code"
             />
           </div>

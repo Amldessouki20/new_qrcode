@@ -88,6 +88,7 @@ export default async function PrintCardPage({
                 firstName: card.guest.firstName,
                 lastName: card.guest.lastName,
                 ...(card.guest.profileImagePath && { profileImagePath: card.guest.profileImagePath }),
+                ...(card.guest.thumbnailImagePath && { thumbnailImagePath: card.guest.thumbnailImagePath }),
                 ...(card.guest.nationalId && { nationalId: card.guest.nationalId }),
                 ...(card.guest.passportNo && { passportNo: card.guest.passportNo }),
                 ...(card.guest.nationality && { nationality: card.guest.nationality }),

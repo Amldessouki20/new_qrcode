@@ -116,6 +116,7 @@ export function GuestAvatar({
           alt={alt || fallbackText || 'Guest Avatar'}
           fill
           className="object-cover"
+          unoptimized
           onLoad={handleImageLoad}
           onError={handleImageError}
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"

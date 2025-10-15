@@ -62,6 +62,8 @@ export async function GET(request: NextRequest) {
           select: {
             firstName: true,
             lastName: true,
+            profileImagePath: true,
+            thumbnailImagePath: true,
             nationalId: true,
             passportNo: true,
             nationality: true,
@@ -107,6 +109,8 @@ export async function GET(request: NextRequest) {
       guest: cardData.guest ? {
         firstName: cardData.guest.firstName,
         lastName: cardData.guest.lastName,
+        profileImagePath: cardData.guest.profileImagePath,
+        thumbnailImagePath: cardData.guest.thumbnailImagePath,
         nationalId: cardData.guest.nationalId,
         passportNo: cardData.guest.passportNo || '',
         nationality: cardData.guest.nationality || '',

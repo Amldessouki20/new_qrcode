@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Printer, CreditCard, User, MapPin, Calendar, Clock } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { parseCardDataString } from '@/lib/qr-generator';
@@ -84,6 +85,8 @@ export default async function CardDetailsPage({
           id: true,
           firstName: true,
           lastName: true,
+          profileImagePath: true,
+          thumbnailImagePath: true,
           nationalId: true,
           nationality: true,
           roomNumber: true,
@@ -257,9 +260,23 @@ export default async function CardDetailsPage({
                   <label className="text-sm font-medium text-gray-500">
                     {t('guests.name')}
                   </label>
-                  <p className="font-medium">
-                    {card.guest.firstName} {card.guest.lastName}
-                  </p>
+                  <div className="flex items-center gap-3 mt-1">
+                    {card.guest.profileImagePath ? (
+                      <Image
+                        src={card.guest.profileImagePath}
+                        alt={`${card.guest.firstName} ${card.guest.lastName}`}
+                        width={48}
+                        height={48}
+                        unoptimized
+                        className="h-12 w-12 rounded-full object-cover border"
+                      />
+                    ) : (
+                      <User className="h-8 w-8 text-muted-foreground" />
+                    )}
+                    <p className="font-medium">
+                      {card.guest.firstName} {card.guest.lastName}
+                    </p>
+                  </div>
                 </div>
                 
                 <div>

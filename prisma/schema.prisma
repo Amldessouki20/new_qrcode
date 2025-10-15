@@ -3,10 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
- 
 }
 
 model User {
@@ -165,60 +164,63 @@ model MealTime {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
   cards        Card[]
+  // Cards that are allowed to consume this meal time (many-to-many)
+  allowedMealCards Card[]  @relation("CardAllowedMeals")
+  // Scan logs that matched this meal time historically
+  matchedScanLogs ScanLog[] @relation("MatchedMealTime")
   restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
 
   @@map("meal_times")
 }
 
 model Guest {
-  id           String      @id @default(cuid())
-  firstName    String
-  lastName     String
-  nationalId   String?     @unique
-  passportNo   String?     @unique
-  nationality  String?
-  company      String?
-  jobTitle     String?
-  checkInDate  DateTime?
-  expiredDate DateTime?
-  roomNumber   String?
-  religion     String?
-  restaurantId String
-  isActive     Boolean     @default(true)
-  createdBy    String
-  updatedBy    String?
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-  deletedAt    DateTime?
-   profileImagePath    String?   // Path to the original image
-  thumbnailImagePath  String?   // Path to the thumbnail image
-  imageUploadedAt     DateTime? // When the image was uploaded
-  imageSize           Int?      // Image file size in bytes
-  imageMimeType       String?   // MIME type of the image (e.g., image/jpeg)
-  accessLogs   AccessLog[]
-  cards        Card[]
-  creator      User        @relation("CreatedBy", fields: [createdBy], references: [id])
-  restaurant   Restaurant  @relation(fields: [restaurantId], references: [id])
-  updater      User?       @relation("UpdatedBy", fields: [updatedBy], references: [id])
-  scanLogs     ScanLog[]
+  id                 String      @id @default(cuid())
+  firstName          String
+  lastName           String
+  nationalId         String?     @unique
+  passportNo         String?     @unique
+  nationality        String?
+  company            String?
+  jobTitle           String?
+  checkInDate        DateTime?
+  roomNumber         String?
+  restaurantId       String
+  isActive           Boolean     @default(true)
+  createdBy          String
+  updatedBy          String?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+  deletedAt          DateTime?
+  religion           String?
+  expiredDate        DateTime?
+  imageMimeType      String?
+  imageSize          Int?
+  imageUploadedAt    DateTime?
+  profileImagePath   String?
+  thumbnailImagePath String?
+  accessLogs         AccessLog[]
+  cards              Card[]
+  creator            User        @relation("CreatedBy", fields: [createdBy], references: [id])
+  restaurant         Restaurant  @relation(fields: [restaurantId], references: [id])
+  updater            User?       @relation("UpdatedBy", fields: [updatedBy], references: [id])
+  scanLogs           ScanLog[]
 
-  // Database indexes for performance optimization
-  @@index([restaurantId])           // For filtering guests by restaurant
-  @@index([isActive])               // For filtering active/inactive guests
-  @@index([createdAt])              // For sorting by creation date
-  @@index([checkInDate])            // For filtering by check-in date
-  @@index([expiredDate])           // For filtering by expiration date
-  @@index([firstName, lastName])    // For searching by name
-  @@index([nationalId])             // For searching by national ID (already unique but helps with lookups)
-  @@index([passportNo])             // For searching by passport number
-  @@index([roomNumber])             // For filtering by room number
-  @@index([company])                // For filtering by company
-  @@index([nationality])            // For filtering by nationality
-  @@index([profileImagePath])       // For checking if guest has profile image
-  @@index([imageUploadedAt])        // For sorting by image upload date
-  @@index([restaurantId, isActive]) // Composite index for common query pattern
-  @@index([createdBy])              // For filtering by creator
-  @@index([updatedBy])              // For filtering by updater
+  @@index([restaurantId])
+  @@index([isActive])
+  @@index([createdAt])
+  @@index([checkInDate])
+  @@index([expiredDate])
+  @@index([firstName, lastName])
+  @@index([nationalId])
+  @@index([passportNo])
+  @@index([roomNumber])
+  @@index([company])
+  @@index([nationality])
+  @@index([profileImagePath])
+  @@index([imageUploadedAt])
+  @@index([restaurantId, isActive])
+  @@index([createdBy])
+  @@index([updatedBy])
   @@map("guests")
 }
 
@@ -240,6 +242,8 @@ model Card {
   creator    User        @relation("CreatedBy", fields: [createdBy], references: [id])
   guest      Guest       @relation(fields: [guestId], references: [id], onDelete: Cascade)
   mealTime   MealTime    @relation(fields: [mealTimeId], references: [id])
+  // Allowed meal times for this card (many-to-many)
+  allowedMealTimes MealTime[] @relation("CardAllowedMeals")
   scanLogs   ScanLog[]
 
   @@map("cards")
@@ -250,6 +254,8 @@ model ScanLog {
   stationId      String?
   cardId         String?
   guestId        String?
+  // Matched meal time at the moment of scan (for historical accuracy)
+  matchedMealTimeId String?
   scanTime       DateTime @default(now())
   isSuccess      Boolean
   errorCode      String?
@@ -260,6 +266,7 @@ model ScanLog {
   createdAt      DateTime @default(now())
   card           Card?    @relation(fields: [cardId], references: [id])
   guest          Guest?   @relation(fields: [guestId], references: [id])
+  matchedMealTime MealTime? @relation("MatchedMealTime", fields: [matchedMealTimeId], references: [id])
 
   @@map("scan_logs")
 }

@@ -136,6 +136,7 @@ export default async function PrintMultipleCardsPage({
         firstName: card.guest!.firstName,
         lastName: card.guest!.lastName,
         profileImagePath: card.guest!.profileImagePath || undefined,
+        thumbnailImagePath: card.guest!.thumbnailImagePath || undefined,
         nationalId: card.guest!.nationalId || "",
         passportNo: card.guest!.passportNo || "",
         nationality: card.guest!.nationality || "",

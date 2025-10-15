@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
   // Enable Unicode support in URLs
   trailingSlash: false,
   images: {
-    domains: ["res.cloudinary.com"],
+    // No remote domains needed; local images under /public/uploads
   },
 };
 

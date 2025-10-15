@@ -45,14 +45,20 @@ async function main() {
     { name: 'scan.qr', description: 'Scan QR codes', module: 'scan', action: 'qr' },
     { name: 'scan.rfid', description: 'Scan RFID cards', module: 'scan', action: 'rfid' },
     { name: 'scan.logs', description: 'View scan logs', module: 'scan', action: 'logs' },
-    
+
     // Dashboard
     { name: 'dashboard.view', description: 'View dashboard', module: 'dashboard', action: 'view' },
     { name: 'dashboard.analytics', description: 'View analytics', module: 'dashboard', action: 'analytics' },
-    
+
     // Monitoring
     { name: 'monitoring.view', description: 'View monitoring data', module: 'monitoring', action: 'view' },
     { name: 'monitoring.errors', description: 'View error logs', module: 'monitoring', action: 'errors' },
+
+    // Accommodation management
+    { name: 'accommodation.create', description: 'Create accommodation records', module: 'accommodation', action: 'create' },
+    { name: 'accommodation.read', description: 'View accommodation data', module: 'accommodation', action: 'read' },
+    { name: 'accommodation.update', description: 'Update accommodation records', module: 'accommodation', action: 'update' },
+    { name: 'accommodation.delete', description: 'Delete accommodation records', module: 'accommodation', action: 'delete' },
   ];
 
   console.log('📋 Creating permissions...');

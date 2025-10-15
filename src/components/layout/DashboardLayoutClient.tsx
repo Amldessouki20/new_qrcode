@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -43,9 +43,16 @@ interface User {
 interface DashboardLayoutClientProps {
   children: React.ReactNode;
   user: User;
+  allowedNavKeys?: Array<NavItem['key']>;
 }
 
-const navigationItems = [
+type NavItem = {
+  key: 'dashboard' | 'users' | 'restaurants' | 'gates' | 'accommodation' | 'guests' | 'cards' | 'reports';
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+};
+
+const navigationItems: NavItem[] = [
   {
     key: 'dashboard',
     href: '/dashboard',
@@ -93,13 +100,77 @@ const navigationItems = [
   },
 ];
 
-export function DashboardLayoutClient({ children, user }: DashboardLayoutClientProps) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+export function DashboardLayoutClient({ children, user, allowedNavKeys }: DashboardLayoutClientProps) {
+  // Desktop sidebar open/close
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  // Mobile sheet open/close (separate from desktop state)
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [userPermissions, setUserPermissions] = useState<string[] | null>(null);
   const t = useTranslations();
 
   const locale = useLocale();
   const router = useRouter();
   const isRTL = locale === 'ar';
+
+  // Map each nav item to the minimal read permission required (stable reference)
+  const requiredPermissionByKey = useMemo<Record<NavItem['key'], string | null>>(() => ({
+    dashboard: 'dashboard.view',
+    reports: 'users.read',
+    users: 'users.read',
+    restaurants: 'restaurants.read',
+    gates: 'gates.read',
+    accommodation: 'accommodation.read',
+    guests: 'guests.read',
+    cards: 'cards.read',
+  }), []);
+
+  // Fetch user permissions (names) once on mount
+  useEffect(() => {
+    if (allowedNavKeys) {
+      // If server provided allowed keys, skip client fetch
+      setUserPermissions([]);
+      return;
+    }
+    let cancelled = false;
+    const loadPermissions = async () => {
+      try {
+        const res = await fetch(`/api/auth/me`);
+        if (!res.ok) throw new Error('Failed to fetch user');
+        const data = await res.json();
+        const perms: string[] = Array.isArray(data.permissions)
+          ? data.permissions
+          : [];
+        if (!cancelled) setUserPermissions(perms);
+      } catch (err) {
+        console.error('Failed to load user permissions:', err);
+        if (!cancelled) setUserPermissions([]);
+      }
+    };
+    loadPermissions();
+    return () => {
+      cancelled = true;
+    };
+  }, [user.id, allowedNavKeys]);
+
+  // Compute visible items based on permissions; until loaded, show nothing for gated items
+  const visibleNavigationItems = useMemo(() => {
+    // Admin and Super Admin see all items regardless of explicit permission assignments
+    const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
+    if (isAdmin) return navigationItems;
+
+    // If allowedNavKeys provided from server, use them directly
+    if (allowedNavKeys && Array.isArray(allowedNavKeys)) {
+      const allowedSet = new Set(allowedNavKeys);
+      return navigationItems.filter((item) => allowedSet.has(item.key));
+    }
+
+    return navigationItems.filter((item) => {
+      const required = requiredPermissionByKey[item.key];
+      if (!required) return true;
+      if (!userPermissions) return false; // wait for permissions to load before showing gated items
+      return userPermissions.includes(required);
+    });
+  }, [userPermissions, user?.role, allowedNavKeys, requiredPermissionByKey]);
 
   const handleLogout = async () => {
     try {
@@ -128,14 +199,14 @@ export function DashboardLayoutClient({ children, user }: DashboardLayoutClientP
           {/* <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
             <span className="text-primary-foreground font-bold text-sm"></span>
           </div> */}
-          {/* <span className="font-bold text-lg">{t('common.logo')}</span> */}
+          <span className="font-bold text-lg">{t('common.logo')}</span>
         </Link> 
       </div> 
 
        {/* Navigation */}
       <nav className="flex-1 space-y-1 px-4 py-6  shadow-lg rounded-tr-xl rounded-br-xl">
        
-        {navigationItems.map((item) => {
+        {visibleNavigationItems.map((item) => {
           const Icon = item.icon;
           return (
             <Link
@@ -145,7 +216,7 @@ export function DashboardLayoutClient({ children, user }: DashboardLayoutClientP
                "flex items-center space-x-4 p-3 rounded-lg text-sm font-bold text-gray-900 hover:bg-blue-100 hover:text-blue-700 transition-all duration-200 transform hover:scale-105",
           isRTL && "space-x-reverse"
               )}
-              onClick={() => setSidebarOpen(false)}
+              onClick={() => setSidebarOpen(true)}
             >
               <Icon className="h-5 w-5" />
               <span>{t(`dashboard.${item.key}`)}</span>
@@ -161,13 +232,21 @@ export function DashboardLayoutClient({ children, user }: DashboardLayoutClientP
 
   return (
     <div className="flex h-screen bg-background">
-      {/* Desktop Sidebar */}
-      <div className="hidden lg:flex lg:w-64 lg:flex-col lg:border-r">
-        <SidebarContent />
+      {/* Desktop Sidebar (collapsible) */}
+      <div
+        className={cn(
+          "hidden lg:flex lg:flex-col transition-all duration-300 ease-in-out",
+          sidebarOpen ? "lg:w-64 lg:border-r" : "lg:w-0 lg:border-0"
+        )}
+      >
+        {/* Hide content visually when closed to avoid focus issues */}
+        <div className={cn("overflow-hidden", sidebarOpen ? "opacity-100" : "opacity-0")}> 
+          <SidebarContent />
+        </div>
       </div>
 
       {/* Mobile Sidebar */}
-      <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+      <Sheet open={mobileSidebarOpen} onOpenChange={setMobileSidebarOpen}>
         <SheetTrigger asChild>
           <Button
             variant="ghost"
@@ -190,6 +269,16 @@ export function DashboardLayoutClient({ children, user }: DashboardLayoutClientP
           <div className="flex items-center space-x-4">
             {/* Mobile menu button space */}
             <div className="w-10 lg:hidden" />
+            {/* Desktop sidebar toggle */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="hidden lg:inline-flex"
+              aria-label={sidebarOpen ? t('common.close') : t('common.open')}
+              onClick={() => setSidebarOpen((prev) => !prev)}
+            >
+              <Menu className="h-6 w-6" />
+            </Button>
             <h1 className="text-xl font-semibold">{t('dashboard.title')}</h1>
           </div>
           
