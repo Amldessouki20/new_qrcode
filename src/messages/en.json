@@ -1116,6 +1116,8 @@
     "snack": "Snack"
   },
   "reports": {
+    "companyName":"Namariq company",
+    "restuarantName":"restaurant",
     "availableTypes":".availableTypes",
     "supportedFormats":"supportedFormats",
     "today":".today",
@@ -1204,6 +1206,11 @@
     },
    
     "custom":{
+      "country":"Saudi Arabia",
+      "city":"Riyadh",
+      "restaurantType":"Restaurant Type",
+      "logoUrl":"Logo URL",
+      "reportDate":"Report pickupDate",
     "title":"Custom Reports",
     "description":"Custom Description",
     "from":"From",

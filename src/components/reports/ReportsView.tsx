@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { useCallback } from 'react';
 import { 
   FileText, 
@@ -41,6 +41,22 @@ interface ReportsViewProps {
 
 const ReportsView: React.FC<ReportsViewProps> = ({ initialReports = [] }) => {
   const t = useTranslations('reports');
+  const locale = useLocale();
+  const normalizedLocale = locale === 'ar' ? 'ar-SA' : locale === 'en' ? 'en-US' : (locale || 'en-US');
+  const formatDate = (value: string | Date) => {
+    const d = typeof value === 'string' ? new Date(value) : value;
+    return new Intl.DateTimeFormat(normalizedLocale, {
+      year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'UTC'
+    }).format(d);
+  };
+  const formatDateTime = (value: string | Date) => {
+    const d = typeof value === 'string' ? new Date(value) : value;
+    return new Intl.DateTimeFormat(normalizedLocale, {
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit',
+      timeZone: 'UTC'
+    }).format(d);
+  };
   const [reports, setReports] = useState<ReportData[]>(initialReports);
   const [loading, setLoading] = useState(false);
   const [selectedType, setSelectedType] = useState<string>('all');
@@ -326,13 +342,13 @@ const ReportsView: React.FC<ReportsViewProps> = ({ initialReports = [] }) => {
                     <div>
                       <span className="font-medium">{t('period')}:</span>
                       <p className="text-muted-foreground">
-                        {new Date(report.period.start).toLocaleDateString()} - {new Date(report.period.end).toLocaleDateString()}
+                        {formatDate(report.period.start)} - {formatDate(report.period.end)}
                       </p>
                     </div>
                     <div>
                       <span className="font-medium">{t('generatedAt')}:</span>
                       <p className="text-muted-foreground">
-                        {new Date(report.generatedAt).toLocaleString()}
+                        {formatDateTime(report.generatedAt)}
                       </p>
                     </div>
                     <div>

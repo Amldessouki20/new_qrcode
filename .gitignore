@@ -18,7 +18,7 @@
 /out/
  
 # local uploads (do not commit user files)
-public/uploads/guests/
+# public/uploads/guests/
 
 # production
 /build

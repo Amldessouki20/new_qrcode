@@ -106,6 +106,17 @@ export default async function ReportsPage({
       count: 1,
       color: 'gray'
     }
+    ,
+    {
+      id: 'scan-summary',
+      title: locale === 'ar' ? 'ملخص المسح' : 'Scan Summary',
+      description: locale === 'ar'
+        ? 'تقرير مختصر لنوع التقرير واسم التقرير واسم المطعم وعدد المسحات الناجحة والفاشلة والتحذيرية'
+        : 'Summary report: type, name, restaurant, and counts of success/failure/warnings',
+      icon: <BarChart3 className="h-8 w-8 text-indigo-600" />,
+      count: totalScans,
+      color: 'indigo'
+    }
   ];
 
   const exportFormats = [

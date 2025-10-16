@@ -3,9 +3,10 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
+  
 }
 
 model User {
@@ -164,10 +165,7 @@ model MealTime {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
   cards        Card[]
-  // Cards that are allowed to consume this meal time (many-to-many)
-  allowedMealCards Card[]  @relation("CardAllowedMeals")
-  // Scan logs that matched this meal time historically
-  matchedScanLogs ScanLog[] @relation("MatchedMealTime")
+  matchedLogs  ScanLog[]  @relation("MatchedMealTimeLogs")
   restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
 
   @@map("meal_times")
@@ -242,8 +240,6 @@ model Card {
   creator    User        @relation("CreatedBy", fields: [createdBy], references: [id])
   guest      Guest       @relation(fields: [guestId], references: [id], onDelete: Cascade)
   mealTime   MealTime    @relation(fields: [mealTimeId], references: [id])
-  // Allowed meal times for this card (many-to-many)
-  allowedMealTimes MealTime[] @relation("CardAllowedMeals")
   scanLogs   ScanLog[]
 
   @@map("cards")
@@ -254,8 +250,6 @@ model ScanLog {
   stationId      String?
   cardId         String?
   guestId        String?
-  // Matched meal time at the moment of scan (for historical accuracy)
-  matchedMealTimeId String?
   scanTime       DateTime @default(now())
   isSuccess      Boolean
   errorCode      String?
@@ -264,9 +258,10 @@ model ScanLog {
   userAgent      String?
   processingTime Int?
   createdAt      DateTime @default(now())
+  matchedMealTimeId String?
   card           Card?    @relation(fields: [cardId], references: [id])
   guest          Guest?   @relation(fields: [guestId], references: [id])
-  matchedMealTime MealTime? @relation("MatchedMealTime", fields: [matchedMealTimeId], references: [id])
+  matchedMealTime MealTime? @relation("MatchedMealTimeLogs", fields: [matchedMealTimeId], references: [id], onDelete: SetNull)
 
   @@map("scan_logs")
 }
